@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"d0c997bc69c340dc829a558ff27e4776","collectionName":"appointment_staff_mapping","type":"collection"}

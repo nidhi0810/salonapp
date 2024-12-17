@@ -5,6 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 
+const connectDB = require('./config/db'); // Import your DB connection
 const router = require('./routes/authRoutes');  
 const outletRoutes = require('./routes/outletRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -12,6 +13,9 @@ const packageRoutes = require('./routes/packageRoutes');
 const appointmentRouter = require('./routes/appointmentRoutes');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();  // Make sure the connection is established before the server starts
 
 // Middleware to parse JSON data
 app.use(bodyParser.json());
@@ -27,15 +31,6 @@ app.use(session({
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
-
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/salon', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch(err => {
-    console.error('Error connecting to MongoDB', err);
-  });
 
 // Use routes
 app.use('/auth', router);
