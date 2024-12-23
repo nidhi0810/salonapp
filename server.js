@@ -34,13 +34,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes
 app.use('/auth', router);
-app.use('/outlets', outletRoutes);
-app.use('/services', serviceRoutes);
-app.use('/packages', packageRoutes);
-app.use(appointmentRouter); // Ensure it's set correctly
+app.use('/api/outlets', outletRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api', appointmentRouter); // Ensure it's set correctly
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'appointment.html'));
+app.get('/book-appointment', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'bookappointment.html'));
 });
 // Serve login page at /login route
 app.get('/login', (req, res) => {
@@ -48,6 +48,9 @@ app.get('/login', (req, res) => {
 });
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+app.get('/appointmentvalidation', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'appointmentvalidation.html'));
 });
 
 // Start the server

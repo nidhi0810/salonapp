@@ -39,4 +39,16 @@ router.get('/:ids', async (req, res) => {
     }
 });
 
+router.post('/services', async (req, res) => {
+    const { serviceName, duration, price } = req.body;
+    try {
+      const newService = new ServiceMaster({ serviceName, duration, price });
+      await newService.save();
+      res.status(201).json(newService);
+    } catch (error) {
+      console.error('Error creating service:', error);
+      res.status(500).json({ message: 'Error creating service', error });
+    }
+  });
+  
 module.exports = router;

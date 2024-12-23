@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Outlet Appointment Management</title>
+  <!-- Bootstrap CSS -->
+  <link 
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" 
+    rel="stylesheet" 
+    crossorigin="anonymous"
+  >
+  <style>
+    .container {
+      margin-top: 30px;
+    }
+    .appointment-card {
+      margin-bottom: 15px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f8f9fa;
+    }
+    .appointment-card h5 {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-center">Outlet Appointment Management</h1>
+    <hr />
+
+    <!-- Appointments Section -->
+    <div id="appointmentsSection">
+      <h2>Appointments</h2>
+      <div id="appointmentsList" class="row"></div>
+    </div>
+  </div>
+
+  <!-- Edit Appointment Modal -->
+  <div class="modal fade" id="editAppointmentModal" tabindex="-1" aria-labelledby="editAppointmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editAppointmentModalLabel">Edit Appointment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editAppointmentForm">
+            <div class="mb-3">
+              <label for="appointmentDate" class="form-label">Date</label>
+              <input type="date" class="form-control" id="appointmentDate" required />
+            </div>
+            <div class="mb-3">
+              <label for="appointmentTime" class="form-label">Time</label>
+              <input type="time" class="form-control" id="appointmentTime" required />
+            </div>
+            <div class="mb-3">
+              <label for="services" class="form-label">Services</label>
+              <select class="form-control" id="services" multiple required></select>
+            </div>
+            <div class="mb-3">
+              <label for="package" class="form-label">Package</label>
+              <select class="form-control" id="package" required></select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="saveEdit()">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script 
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" 
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- JavaScript -->
+  <script>
+    const API_URL = 'http://localhost:5000/api';
+    
+    // Fetch Appointments and Render on the Page
+    async function loadAppointments() {
+      const response = await fetch(`${API_URL}/appointments`);
+      const appointments = await response.json();
+      const list = document.getElementById('appointmentsList');
+      list.innerHTML = '';
+
+      appointments.forEach((appointment) => {
+        const card = document.createElement('div');
+        card.className = 'col-md-4 appointment-card';
+        // Extract service names from the services array
+        const serviceNames = appointment.services.map(service => service.serviceName).join(', ');
+
+        // Extract package name from the package object
+        const packageName = appointment.package.packageName;
+
+        card.innerHTML = `
+          <h5>${appointment.customerName}</h5>
+          <p><strong>Contact Number:</strong> ${appointment.user.mobile}</p>
+          <p><strong>Services:</strong> ${serviceNames}</p>
+          <p><strong>Package:</strong> ${packageName}</p>
+          <p><strong>Date:</strong> ${new Date(appointment.appointmentDate).toLocaleDateString()}</p>
+          <p><strong>Time:</strong> ${appointment.appointmentTime}</p>
+          <p><strong>Status:</strong> ${appointment.status}</p>
+          <div class="d-flex justify-content-between">
+            <button class="btn btn-success btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Confirmed' })">Accept</button>
+            <!-- Button to trigger the modal -->
+            <button class="btn btn-warning btn-sm" onclick="openEditModal('${appointment._id}', '${appointment.appointmentDate}', '${appointment.appointmentTime}', '${appointment.services}', '${appointment.package.packageName}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Cancelled' })">Cancel</button>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    // Function to open the modal and populate the fields with the previously stored values
+    async function openEditModal(appointmentId, date, time, services, package) {
+        // Store the appointmentId globally
+        window.currentAppointmentId = appointmentId;
+
+        // Populate the modal with the current appointment details
+        const appointmentDateField = document.getElementById('appointmentDate');
+        const appointmentTimeField = document.getElementById('appointmentTime');
+
+        // Make sure the fields exist before setting values
+        if (appointmentDateField && appointmentTimeField) {
+            appointmentDateField.value = date; // Set the existing appointment date
+            appointmentTimeField.value = time; // Set the existing appointment time
+        }
+
+        // Fetch available services and populate the services dropdown
+        try {
+            const servicesResponse = await fetch(`${API_URL}/services`);
+            const availableServices = await servicesResponse.json();
+
+            // Ensure the 'data' field exists and is an array
+            if (availableServices.data && Array.isArray(availableServices.data)) {
+                const servicesDropdown = document.getElementById('services');
+                servicesDropdown.innerHTML = ''; // Clear previous options
+
+                availableServices.data.forEach(service => {
+                    const option = document.createElement('option');
+                    option.value = service.serviceName; // Get the service name
+                    option.text = service.serviceName; // Set the text to the service name
+
+                    // Pre-select if the service is already part of the appointment
+                    if (services.includes(service.serviceName)) {
+                        option.selected = true;
+                    }
+
+                    servicesDropdown.appendChild(option);
+                });
+            } else {
+                console.error("Error: Available services are not in the expected format", availableServices);
+            }
+        } catch (error) {
+            console.error("Error fetching services:", error);
+        }
+
+        // Fetch available packages and populate the packages dropdown
+        try {
+            const packagesResponse = await fetch(`${API_URL}/packages`);
+            const availablePackages = await packagesResponse.json();
+
+            // Ensure the 'data' field exists and is an array (adjust this if packages have a different format)
+            if (availablePackages.data && Array.isArray(availablePackages.data)) {
+                const packageDropdown = document.getElementById('package');
+                packageDropdown.innerHTML = ''; // Clear previous options
+
+                availablePackages.data.forEach(pkg => {
+                    const option = document.createElement('option');
+                    option.value = pkg.packageName; // Get the package name
+                    option.text = pkg.packageName; // Set the text to the package name
+
+                    // Pre-select the package if it matches the one from the appointment
+                    if (pkg.packageName === package) {
+                        option.selected = true;
+                    }
+
+                    packageDropdown.appendChild(option);
+                });
+            } else {
+                console.error("Error: Available packages are not in the expected format", availablePackages);
+            }
+        } catch (error) {
+            console.error("Error fetching packages:", error);
+        }
+
+        // Show the modal
+        var myModal = new bootstrap.Modal(document.getElementById('editAppointmentModal'), {
+            keyboard: false
+        });
+        myModal.show();
+    }
+
+    // Function to save the changes after editing
+    async function saveEdit() {
+        if (!currentAppointmentId) {
+            console.error('No appointment ID found!');
+            return;
+        }
+        const updatedDate = document.getElementById('appointmentDate').value;
+        const updatedTime = document.getElementById('appointmentTime').value;
+        const selectedServices = Array.from(document.getElementById('services').selectedOptions).map(option => option.value);
+        const selectedPackage = document.getElementById('package').value;
+
+        console.log('Updated Appointment:', {
+          updatedDate,
+          updatedTime,
+          selectedServices,
+          selectedPackage,
+        });
+
+        // Close the modal after saving
+        var myModal = bootstrap.Modal.getInstance(document.getElementById('editAppointmentModal'));
+        myModal.hide();
+
+        await updateAppointment(
+          window.currentAppointmentId,
+          { appointmentDate: updatedDate, appointmentTime: updatedTime, services: selectedServices, package: selectedPackage }
+        );
+    }
+
+    // Update Appointment
+    async function updateAppointment(id, updates) {
+        await fetch(`${API_URL}/appointments/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updates),
+        });
+        loadAppointments();
+    }
+
+    // Initial Load
+    loadAppointments();
+  </script>
+</body>
+</html>

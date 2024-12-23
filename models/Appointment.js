@@ -28,11 +28,11 @@ const appointmentSchema = new mongoose.Schema({
   },
   services: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Service', // Reference to the Service model
+    ref: 'ServiceMaster', // Reference to the Service model
   }],
   package: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Package', // Reference to the Package model
+    ref: 'PackageMaster', // Reference to the Package model
   },
   remarks: {
     type: String,
@@ -66,7 +66,20 @@ const appointmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // Reference to the User model
     required: true, // Store user who made the appointment
-  }
+  },
+  status: {
+    type: String,
+    enum: [
+      'Request Sent', // Not confirmed
+      'Confirmed', // Once the Outlet staff confirms
+      'Cancelled', // If Customer or Backend Outlet staff cancels
+      'Did Not Turn Up', // To be updated by backend staff
+      'Partially Completed', // To be updated by backend staff
+      'All Completed', // To be updated by backend staff
+      'Overdue', // System updates if the appointment passes the time
+    ],
+    default: 'Request Sent',
+  },
 }, { timestamps: true });
 
 // Create the model from the schema

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // MongoDB Atlas URI with database name
-const uri = "mongodb+srv://<username>:<password>@cluster0.yuoi5.mongodb.net/salon?retryWrites=true&w=majority&appName=Cluster0";
+const uri = "mongodb+srv://nidhiputhrannp:nid081005@cluster0.yuoi5.mongodb.net/salon?retryWrites=true&w=majority&appName=Cluster0";
 
 // Connect to MongoDB using mongoose
 const connectDB = async () => {
