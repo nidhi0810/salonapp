@@ -198,7 +198,7 @@ router.put('/appointments/:id', isAuthenticatedAndStaff, async (req, res) => {
     if (customer && customer.email) {
       // Send email to the customer
       const subject = 'Appointment Confirmation';
-      const text = `Enjoying your life at the beach? Your hair might be messed up, need a haircut? COME BACK HOME THEN! Your appointment has been confirmed with the following details:
+      const text = `Your appointment has been confirmed with the following details:
         Date: ${updatedAppointment.appointmentDate}
         Time: ${updatedAppointment.appointmentTime}
         Package: ${packageDoc.packageName}
