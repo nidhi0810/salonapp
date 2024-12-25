@@ -6,7 +6,8 @@ const bodyParser = require('body-parser');
 const path = require('path');
 
 const connectDB = require('./config/db'); // Import your DB connection
-const router = require('./routes/authRoutes');  
+const router = require('./routes/authRoutes'); 
+const staffRoutes = require('./routes/staffRoutes');  
 const outletRoutes = require('./routes/outletRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const packageRoutes = require('./routes/packageRoutes');
@@ -19,14 +20,17 @@ connectDB();  // Make sure the connection is established before the server start
 
 // Middleware to parse JSON data
 app.use(bodyParser.json());
-app.use(cors());  // Enable CORS for cross-origin requests
+app.use(cors({
+  origin: 'http://localhost:5000',  // Allow requests from your frontend
+  credentials: true  // Make sure cookies are sent with requests
+}));  // Enable CORS for cross-origin requests
 
 // Session middleware
 app.use(session({
   secret: 'your-secret-key', // Use a strong secret for production
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Set `secure: true` in production (with HTTPS)
+  cookie: { httpOnly: true, secure: false } // Set `secure: true` in production (with HTTPS)
 }));
 
 // Serve static files (HTML, CSS, JS)
@@ -34,6 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Use routes
 app.use('/auth', router);
+app.use('/auth/staff', staffRoutes);
 app.use('/api/outlets', outletRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/packages', packageRoutes);
@@ -48,6 +53,13 @@ app.get('/login', (req, res) => {
 });
 app.get('/signup', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
+// Serve login page at /login route
+app.get('/stafflogin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'stafflogin.html'));
+});
+app.get('/staffsignup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'staffsignup.html'));
 });
 app.get('/appointmentvalidation', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'appointmentvalidation.html'));

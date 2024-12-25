@@ -86,37 +86,71 @@
     
     // Fetch Appointments and Render on the Page
     async function loadAppointments() {
-      const response = await fetch(`${API_URL}/appointments`);
-      const appointments = await response.json();
-      const list = document.getElementById('appointmentsList');
-      list.innerHTML = '';
+      try {
+        const response = await fetch(`${API_URL}/appointments`, {
+          method: 'GET',
+          credentials: 'include', // Include cookies for authentication
+        });
 
-      appointments.forEach((appointment) => {
-        const card = document.createElement('div');
-        card.className = 'col-md-4 appointment-card';
-        // Extract service names from the services array
-        const serviceNames = appointment.services.map(service => service.serviceName).join(', ');
+        // Handle redirection to login
+        if (response.redirected) {
+          window.location.href = response.url; // Redirect to login page
+          return; // Stop further execution
+        }
 
-        // Extract package name from the package object
-        const packageName = appointment.package.packageName;
+        // Ensure the response is valid (status code 200-299)
+        if (!response.ok) {
+          throw new Error(`Error fetching appointments: ${response.status} ${response.statusText}`);
+        }
 
-        card.innerHTML = `
-          <h5>${appointment.customerName}</h5>
-          <p><strong>Contact Number:</strong> ${appointment.user.mobile}</p>
-          <p><strong>Services:</strong> ${serviceNames}</p>
-          <p><strong>Package:</strong> ${packageName}</p>
-          <p><strong>Date:</strong> ${new Date(appointment.appointmentDate).toLocaleDateString()}</p>
-          <p><strong>Time:</strong> ${appointment.appointmentTime}</p>
-          <p><strong>Status:</strong> ${appointment.status}</p>
-          <div class="d-flex justify-content-between">
-            <button class="btn btn-success btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Confirmed' })">Accept</button>
-            <!-- Button to trigger the modal -->
-            <button class="btn btn-warning btn-sm" onclick="openEditModal('${appointment._id}', '${appointment.appointmentDate}', '${appointment.appointmentTime}', '${appointment.services}', '${appointment.package.packageName}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Cancelled' })">Cancel</button>
-          </div>
-        `;
-        list.appendChild(card);
-      });
+        // Safely parse the JSON response
+        const appointments = await response.json();
+        console.log('Appointments:', appointments);
+
+        const list = document.getElementById('appointmentsList');
+        list.innerHTML = ''; // Clear existing content
+
+        // Check if there are no appointments
+        if (!appointments || appointments.length === 0) {
+          list.innerHTML = '<p>No appointments found.</p>';
+          return;
+        }
+
+        // Render appointments
+        appointments.forEach((appointment) => {
+          const card = document.createElement('div');
+          card.className = 'col-md-4 appointment-card';
+
+          // Extract service names from the services array
+          const serviceNames = appointment.services.map(service => service.serviceName).join(', ');
+
+          // Extract package name from the package object
+          const packageName = appointment.package ? appointment.package.packageName : 'No package';
+
+          card.innerHTML = `
+            <h5>${appointment.customerName}</h5>
+            <p><strong>Contact Number:</strong> ${appointment.user?.mobile || 'N/A'}</p>
+            <p><strong>Services:</strong> ${serviceNames}</p>
+            <p><strong>Package:</strong> ${packageName}</p>
+            <p><strong>Remarks:</strong> ${appointment.remarks || 'No remarks'}</p>
+            <p><strong>Date:</strong> ${new Date(appointment.appointmentDate).toLocaleDateString()}</p>
+            <p><strong>Time:</strong> ${appointment.appointmentTime || 'N/A'}</p>
+            <p><strong>Status:</strong> ${appointment.status}</p>
+            <div class="d-flex justify-content-between">
+              <button class="btn btn-success btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Confirmed' })">Accept</button>
+              <button class="btn btn-warning btn-sm" onclick="openEditModal('${appointment._id}', '${appointment.appointmentDate}', '${appointment.appointmentTime}', '${JSON.stringify(appointment.services)}', '${packageName}')">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Cancelled' })">Cancel</button>
+            </div>
+          `;
+          list.appendChild(card);
+        });
+      } catch (error) {
+        console.error('Error loading appointments:', error);
+
+        // Display error message on the page
+        const list = document.getElementById('appointmentsList');
+        list.innerHTML = '<p>Error loading appointments. Please try again later.</p>';
+      }
     }
 
     // Function to open the modal and populate the fields with the previously stored values

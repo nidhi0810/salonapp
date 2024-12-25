@@ -12,4 +12,4 @@ const UserSchema = new mongoose.Schema({
   updated_at: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('customerdetails', UserSchema);
+module.exports = mongoose.model('user', UserSchema);

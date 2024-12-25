@@ -5,6 +5,40 @@ const Service = require('../models/ServiceMaster'); // Your Service model
 const Package = require('../models/PackageMaster'); // Your Package model
 const Appointment = require('../models/Appointment');
 const User = require('../models/user'); // Assuming you have a User model to fetch user details
+const nodemailer = require('nodemailer');
+const { isAuthenticatedAndStaff } = require('../middleware/auth');
+
+// Create a transporter object using the default SMTP transport
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',       // SMTP server address
+  port: 587,                    // Port for STARTTLS
+  secure: false, 
+  auth: {
+    user: 'bayleafpalcoa@gmail.com', // Your email address
+    pass: 'deme ekrw mjin eeig', // Your email password (or an app-specific password if 2FA is enabled)
+  },
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certificates if needed (useful for testing)
+  },
+});
+
+const sendEmail = (to, subject, text) => {
+  const mailOptions = {
+    from: 'bayleafpalcoa@gmail.com',  // Your email address
+    to,                             // Customer's email address
+    subject,                        // Subject of the email
+    text,                           // The content of the email
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('Error sending email:', error);
+    } else {
+      console.log('Email sent:', info.response);
+    }
+  });
+};
+
 
 // Route to book an appointment
 router.post('/book-appointment', async (req, res) => {
@@ -42,7 +76,11 @@ router.post('/book-appointment', async (req, res) => {
     });
 
     // Save the appointment
-    await newAppointment.save();
+    const savedAppointment = await newAppointment.save();
+
+    // Add the appointment to the user's list of appointments
+    user.appointments.push(savedAppointment._id);
+    await user.save();
 
     res.status(200).json({ message: 'Appointment booked successfully!' });
   } catch (error) {
@@ -51,7 +89,7 @@ router.post('/book-appointment', async (req, res) => {
   }
 });
 
-router.get('/appointments/:id', async (req, res) => {
+router.get('/appointments/:id', isAuthenticatedAndStaff, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) {
@@ -65,7 +103,7 @@ router.get('/appointments/:id', async (req, res) => {
 });
 
 // Get All Appointments
-router.get('/appointments', async (req, res) => {
+router.get('/appointments', isAuthenticatedAndStaff, async (req, res) => {
   try {
     console.log('Attempting to fetch appointments from the database'); // Debug statement 2
 
@@ -81,12 +119,12 @@ router.get('/appointments', async (req, res) => {
       })
       .populate({
         path: 'user',
-        model: 'customerdetails',
+        model: 'user',
         select: 'mobile',
       })
       .exec();
 
-    console.log('Fetched appointments successfully:', appointments); // Debug statement 3
+    console.log('Fetched appointments successfully:'); // Debug statement 3
 
     res.status(200).json(appointments);
   } catch (error) {
@@ -96,12 +134,12 @@ router.get('/appointments', async (req, res) => {
 });
 
 // Update Appointment
-router.put('/appointments/:id', async (req, res) => {
+router.put('/appointments/:id', isAuthenticatedAndStaff, async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const { appointmentDate, appointmentTime, services, package: packageName, status } = req.body;
 
-    //console.log('Updating appointment:', { appointmentId, appointmentDate, appointmentTime, services, packageName, status });
+    console.log('Updating appointment:', { appointmentId, appointmentDate, appointmentTime, services, packageName, status });
 
     // Fetch the existing appointment
     const existingAppointment = await Appointment.findById(appointmentId);
@@ -109,24 +147,33 @@ router.put('/appointments/:id', async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found.' });
     }
 
-    // Retain existing services if none are provided
+    // Services: Retain existing if none are provided
     let serviceIds = existingAppointment.services;
+    let serviceNames = [];
     if (services && services.length > 0) {
-      // Fetch the corresponding IDs for service names
-      const foundServices = await Service.find({ serviceName: { $in: services } }).select('_id');
+      // Fetch the corresponding IDs and names for service names
+      const foundServices = await Service.find({ serviceName: { $in: services } }).select('_id serviceName');
       if (foundServices.length !== services.length) {
         return res.status(400).json({ message: 'Some services are invalid.' });
       }
       serviceIds = foundServices.map((service) => service._id);
+      serviceNames = foundServices.map((service) => service.serviceName);
+    } else {
+      // Fetch service names for existing services
+      const existingServices = await Service.find({ _id: { $in: existingAppointment.services } }).select('serviceName');
+      serviceNames = existingServices.map((service) => service.serviceName);
     }
 
-    // Retain existing package if none is provided
+    // Package: Retain existing if none is provided
     const packageDoc = packageName
-      ? await Package.findOne({ packageName }).select('_id')
-      : existingAppointment.package;
+      ? await Package.findOne({ packageName }).select('_id packageName')
+      : { _id: existingAppointment.package, packageName: 'No package selected' };
     if (packageName && !packageDoc) {
       return res.status(400).json({ message: 'Invalid package name.' });
     }
+
+    // Status: Retain existing if none is provided
+    const updatedStatus = status || existingAppointment.status;
 
     // Update the appointment in the database
     const updatedAppointment = await Appointment.findByIdAndUpdate(
@@ -135,11 +182,32 @@ router.put('/appointments/:id', async (req, res) => {
         appointmentDate: appointmentDate || existingAppointment.appointmentDate,
         appointmentTime: appointmentTime || existingAppointment.appointmentTime,
         services: serviceIds,
-        package: packageDoc._id || existingAppointment.package,
-        status: status || existingAppointment.status,
+        package: packageDoc._id,
+        status: updatedStatus,
       },
       { new: true } // Return the updated document
     );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ message: 'Appointment not found.' });
+    }
+
+    // Fetch the customer details to send an email
+    const customer = await User.findById(updatedAppointment.user);
+    console.log('Fetched customer:', customer);
+    if (customer && customer.email) {
+      // Send email to the customer
+      const subject = 'Appointment Confirmation';
+      const text = `Enjoying your life at the beach? Your hair might be messed up, need a haircut? COME BACK HOME THEN! Your appointment has been confirmed with the following details:
+        Date: ${updatedAppointment.appointmentDate}
+        Time: ${updatedAppointment.appointmentTime}
+        Package: ${packageDoc.packageName}
+        Services: ${serviceNames.join(', ')}`;
+      console.log('Email content prepared:', { subject, text });
+      sendEmail(customer.email, subject, text); // Call the function to send the email
+    } else {
+      console.log('No customer email found');
+    }
 
     res.status(200).json({ message: 'Appointment updated successfully', updatedAppointment });
   } catch (error) {
@@ -147,20 +215,6 @@ router.put('/appointments/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
-
-// Delete an Appointment
-router.delete('/appointments/:id', async (req, res) => {
-  try {
-    const deletedAppointment = await Appointment.findByIdAndDelete(req.params.id);
-    if (!deletedAppointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-    res.status(200).json({ message: 'Appointment deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting appointment', error });
-  }
-});
-
 
 // Export the router
 module.exports = router;
