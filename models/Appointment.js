@@ -21,11 +21,6 @@ const appointmentSchema = new mongoose.Schema({
     default: 'Female', // Default value as per your requirement
     enum: ['Male', 'Female', 'Other'], // Possible values for gender
   },
-  typeOfService: {
-    type: String,
-    enum: ['Service', 'Package', 'Combination'], // Service, Package or Combination of both
-    //required: true, //for now commented 
-  },
   services: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ServiceMaster', // Reference to the Service model
@@ -45,9 +40,13 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     required: true, // You can store time as string in 'HH:mm' format
   },
-  discussedWith: {
-    type: String,
-    //required: true, // Name of the person discussed with
+  assignedTo: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
   sourceOfAppointment: {
     type: String,

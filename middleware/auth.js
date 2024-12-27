@@ -17,7 +17,7 @@ const isAuthenticatedAndStaff = async (req, res, next) => {
     const user = await User.findById(req.session.user.userId);
     
     // Check if the user exists and if their role is "staff"
-    if (!user || user.role !== 'staff') {
+    if (!user || user.role === 'customer') {
         console.log("Redirect to login page if not staff");
         return res.redirect('http://localhost:5000/stafflogin');  // Redirect to login page if not logged in
     }

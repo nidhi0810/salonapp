@@ -4,6 +4,17 @@ const User = require('../models/user');
 
 const router = express.Router();
 
+// GET /staff - Fetch all staff members
+router.get('/staff', async (req, res) => {
+  try {
+    const staff = await User.find({ role: 'staff' }, { name: 1, _id: 1 }); // Fetch only staff users with name and ID
+    res.status(200).json({ success: true, data: staff });
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ success: false, message: 'Error fetching staff' });
+  }
+});
+
 // POST route to handle the signup form data
 router.post('/signup', async (req, res) => {
   const { name, mobile, email, password } = req.body;

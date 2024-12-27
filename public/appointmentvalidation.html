@@ -85,73 +85,159 @@
     const API_URL = 'http://localhost:5000/api';
     
     // Fetch Appointments and Render on the Page
-    async function loadAppointments() {
-      try {
-        const response = await fetch(`${API_URL}/appointments`, {
-          method: 'GET',
-          credentials: 'include', // Include cookies for authentication
-        });
+// Fetch Appointments and Render on the Page
+async function loadAppointments() {
+  try {
+    const response = await fetch(`${API_URL}/appointments`, {
+      method: 'GET',
+      credentials: 'include', // Include cookies for authentication
+    });
 
-        // Handle redirection to login
-        if (response.redirected) {
-          window.location.href = response.url; // Redirect to login page
-          return; // Stop further execution
-        }
-
-        // Ensure the response is valid (status code 200-299)
-        if (!response.ok) {
-          throw new Error(`Error fetching appointments: ${response.status} ${response.statusText}`);
-        }
-
-        // Safely parse the JSON response
-        const appointments = await response.json();
-        console.log('Appointments:', appointments);
-
-        const list = document.getElementById('appointmentsList');
-        list.innerHTML = ''; // Clear existing content
-
-        // Check if there are no appointments
-        if (!appointments || appointments.length === 0) {
-          list.innerHTML = '<p>No appointments found.</p>';
-          return;
-        }
-
-        // Render appointments
-        appointments.forEach((appointment) => {
-          const card = document.createElement('div');
-          card.className = 'col-md-4 appointment-card';
-
-          // Extract service names from the services array
-          const serviceNames = appointment.services.map(service => service.serviceName).join(', ');
-
-          // Extract package name from the package object
-          const packageName = appointment.package ? appointment.package.packageName : 'No package';
-
-          card.innerHTML = `
-            <h5>${appointment.customerName}</h5>
-            <p><strong>Contact Number:</strong> ${appointment.user?.mobile || 'N/A'}</p>
-            <p><strong>Services:</strong> ${serviceNames}</p>
-            <p><strong>Package:</strong> ${packageName}</p>
-            <p><strong>Remarks:</strong> ${appointment.remarks || 'No remarks'}</p>
-            <p><strong>Date:</strong> ${new Date(appointment.appointmentDate).toLocaleDateString()}</p>
-            <p><strong>Time:</strong> ${appointment.appointmentTime || 'N/A'}</p>
-            <p><strong>Status:</strong> ${appointment.status}</p>
-            <div class="d-flex justify-content-between">
-              <button class="btn btn-success btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Confirmed' })">Accept</button>
-              <button class="btn btn-warning btn-sm" onclick="openEditModal('${appointment._id}', '${appointment.appointmentDate}', '${appointment.appointmentTime}', '${JSON.stringify(appointment.services)}', '${packageName}')">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Cancelled' })">Cancel</button>
-            </div>
-          `;
-          list.appendChild(card);
-        });
-      } catch (error) {
-        console.error('Error loading appointments:', error);
-
-        // Display error message on the page
-        const list = document.getElementById('appointmentsList');
-        list.innerHTML = '<p>Error loading appointments. Please try again later.</p>';
-      }
+    // Handle redirection to login
+    if (response.redirected) {
+      window.location.href = response.url; // Redirect to login page
+      return; // Stop further execution
     }
+
+    // Ensure the response is valid (status code 200-299)
+    if (!response.ok) {
+      throw new Error(`Error fetching appointments: ${response.status} ${response.statusText}`);
+    }
+
+    // Safely parse the JSON response
+    const appointments = await response.json();
+    console.log('Appointments:', appointments);
+
+    const list = document.getElementById('appointmentsList');
+    list.innerHTML = ''; // Clear existing content
+
+    // Fetch the current user role and ID
+    const userRoleResponse = await fetch(`${API_URL}/userRole`, { credentials: 'include' });
+    const { role, userId } = await userRoleResponse.json(); // Assuming `userId` is returned along with role
+
+    // Fetch staff details (only if the user is admin)
+    let staffList = [];
+    if (role === 'admin') {
+      const staffresponse = await fetch(`${API_URL}/staff`, { method: 'GET' });
+      const staffData = await staffresponse.json();
+      staffList = staffData.data || []; // Ensure it's an array
+    }
+
+    console.log('Staff List:', staffList); // Should log the correct list of staff
+
+    // Filter appointments for staff
+    const filteredAppointments = role === 'staff'
+      ? appointments.filter(appointment => appointment.assignedTo.includes(userId)) // Filter by staff's userId
+      : appointments; // For admin, show all appointments
+
+    console.log('Filtered Appointments:', filteredAppointments);
+
+    // Check if there are no appointments
+    if (!filteredAppointments || filteredAppointments.length === 0) {
+      list.innerHTML = '<p>No appointments found.</p>';
+      return;
+    }
+
+    // Render filtered appointments
+    filteredAppointments.forEach((appointment) => {
+      const card = document.createElement('div');
+      card.className = 'col-md-4 appointment-card';
+
+      // Extract service names from the services array
+      const serviceNames = appointment.services.map(service => service.serviceName).join(', ');
+
+      // Extract package name from the package object
+      const packageName = appointment.package ? appointment.package.packageName : 'No package';
+
+      // Add a dropdown for staff assignment if user is admin
+      const assignToDropdown = role === 'admin'
+        ? `
+          <div class="d-flex align-items-center mt-2">
+            <label for="assignTo" class="me-2"><strong>Assign To:</strong></label>
+            <select id="assignTo-${appointment._id}" class="form-select me-2" style="width: auto;" multiple>
+              ${staffList.map(staff => `<option value="${staff._id}">${staff.name}</option>`).join('')}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="assignToStaff('${appointment._id}', '${appointment.status}')">Assign</button>
+          </div>
+        `
+        : '';
+
+      card.innerHTML = `
+        <h5>${appointment.customerName}</h5>
+        <p><strong>Contact Number:</strong> ${appointment.user?.mobile || 'N/A'}</p>
+        <p><strong>Services:</strong> ${serviceNames}</p>
+        <p><strong>Package:</strong> ${packageName}</p>
+        <p><strong>Remarks:</strong> ${appointment.remarks || 'No remarks'}</p>
+        <p><strong>Date:</strong> ${new Date(appointment.appointmentDate).toLocaleDateString()}</p>
+        <p><strong>Time:</strong> ${appointment.appointmentTime || 'N/A'}</p>
+        <p><strong>Status:</strong> ${appointment.status}</p>
+        ${assignToDropdown}
+        <div class="d-flex justify-content-between">
+          <button class="btn btn-success btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Confirmed' })">Accept</button>
+          <button class="btn btn-warning btn-sm" onclick="openEditModal('${appointment._id}', '${appointment.appointmentDate}', '${appointment.appointmentTime}', '${JSON.stringify(appointment.services)}', '${packageName}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="updateAppointment('${appointment._id}', { status: 'Cancelled' })">Cancel</button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error loading appointments:', error);
+
+    // Display error message on the page
+    const list = document.getElementById('appointmentsList');
+    list.innerHTML = '<p>Error loading appointments. Please try again later.</p>';
+  }
+}
+
+// Function to assign a staff member to an appointment
+async function assignToStaff(appointmentId, status) {
+  const dropdown = document.getElementById(`assignTo-${appointmentId}`);
+  
+  // Check if dropdown exists
+  if (!dropdown) {
+    console.error('Dropdown not found for appointment:', appointmentId);
+    return;
+  }
+
+  // Get the selected staff IDs (now multiple selections)
+  const staffIds = Array.from(dropdown.selectedOptions).map(option => option.value);
+
+  // Check if any staff members are selected
+  console.log('Assigning staff with IDs:', staffIds);
+  if (staffIds.length === 0) {
+    alert('Please select at least one staff member.');
+    return;
+  }
+
+  console.log('Appointment ID:', appointmentId); // Log appointmentId for debugging
+  console.log('Status:', status); // Log status to check its value
+
+  try {
+    const response = await fetch(`${API_URL}/appointments/${appointmentId}/assign`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ staffIds }) // Send an array of staff IDs
+    });
+
+    // Check if the request was successful
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to assign staff');
+    }
+
+    const updatedAppointment = await response.json();
+    console.log('Updated Appointment:', updatedAppointment); // Log the updated appointment
+
+    alert('Staff assigned successfully!');
+    loadAppointments(); // Reload appointments
+  } catch (error) {
+    console.error('Error assigning staff:', error);
+    alert('Failed to assign staff. Please try again.');
+  }
+}
+
 
     // Function to open the modal and populate the fields with the previously stored values
     async function openEditModal(appointmentId, date, time, services, package) {

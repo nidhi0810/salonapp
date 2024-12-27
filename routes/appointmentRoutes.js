@@ -216,5 +216,72 @@ router.put('/appointments/:id', isAuthenticatedAndStaff, async (req, res) => {
   }
 });
 
+router.put('/appointments/:appointmentId/assign', async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { staffIds } = req.body; // Expecting an array of staff IDs
+
+    if (!Array.isArray(staffIds) || staffIds.some(id => !mongoose.Types.ObjectId.isValid(id))) {
+      return res.status(400).json({ success: false, message: 'Invalid staff IDs' });
+    }
+
+    // Check if each staff member exists
+    const staffMembers = await User.find({ _id: { $in: staffIds }, role: 'staff' });
+    if (staffMembers.length !== staffIds.length) {
+      return res.status(404).json({ success: false, message: 'One or more staff members not found' });
+    }
+
+    // Update the appointment with the list of staff members
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      { assignedTo: staffIds },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      return res.status(404).json({ success: false, message: 'Appointment not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Staff assigned successfully',
+      data: updatedAppointment,
+    });
+  } catch (error) {
+    console.error('Error assigning staff to appointment:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+// GET /userrole - Fetch the role of the current user
+router.get('/userRole', (req, res) => {
+  try {
+    const user = req.session?.user; // Assuming the user object is stored in the session
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized access' });
+    }
+    // Ensure user has a role and userId
+    if (!user.role || !user.userId) {
+      return res.status(400).json({ success: false, message: 'User role or ID missing' });
+    }
+    
+    res.status(200).json({ success: true, userId: user.userId, role: user.role });
+  } catch (error) {
+    console.error('Error fetching user role:', error);
+    res.status(500).json({ success: false, message: 'Error fetching user role' });
+  }
+});
+// GET /staff - Fetch all staff members
+router.get('/staff', async (req, res) => {
+  try {
+    const staff = await User.find({ role: 'staff' }, { name: 1, _id: 1 }); // Fetch only staff users with name and ID
+    res.status(200).json({ success: true, data: staff });
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    res.status(500).json({ success: false, message: 'Error fetching staff' });
+  }
+});
+
 // Export the router
 module.exports = router;
