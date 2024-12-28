@@ -18,8 +18,27 @@ const app = express();
 // Connect to MongoDB
 connectDB();  // Make sure the connection is established before the server starts
 
+// Enable CORS for specific domain
+const allowedOrigins = [
+    'http://localhost:5000',
+    'https://bayleaf.onrender.com']; // Replace with your actual domain
+
 // Middleware to parse JSON data
 app.use(bodyParser.json());
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);  // Allow the request
+    } else {
+      callback(new Error('Not allowed by CORS'));  // Reject the request
+    }
+  },
+  credentials: true  // Make sure cookies are sent with requests
+};
+
+// Use CORS middleware
+app.use(cors(corsOptions));
+
 app.use(cors({
   origin: 'http://localhost:5000',  // Allow requests from your frontend
   credentials: true  // Make sure cookies are sent with requests
