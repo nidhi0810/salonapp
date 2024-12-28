@@ -42,18 +42,20 @@ app.use(cors(corsOptions));
 
 // Session middleware
 
+// Session middleware using MongoDB Atlas URI
 app.use(session({
-  store: MongoStore.create({ mongoUrl: 'mongodb://localhost:27017/sessions' }),  // MongoDB connection string for sessions
-  secret: 'your-secret-key',
+  secret: 'your-secret-key',  // Use a strong secret for production
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: 'mongodb+srv://nidhiputhrannp:nid081005@cluster0.yuoi5.mongodb.net/salon?retryWrites=true&w=majority',  // MongoDB Atlas URI
+    ttl: 14 * 24 * 60 * 60,  // Set session expiration (14 days)
+  }),
   cookie: { 
-    httpOnly: true,
-    secure: true,
-    maxAge: 1000 * 60 * 60 * 24
-  }
+    httpOnly: true, 
+    secure: false,  // Set to `true` if using HTTPS in production
+  },
 }));
-
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
