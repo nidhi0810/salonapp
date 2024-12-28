@@ -8,6 +8,7 @@ const MongoStore = require('connect-mongo');
 
 const connectDB = require('./config/db'); // Import your DB connection
 const router = require('./routes/authRoutes'); 
+const carouselRoutes = require('./routes/carouselRoutes');
 const staffRoutes = require('./routes/staffRoutes');  
 const outletRoutes = require('./routes/outletRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
@@ -63,6 +64,7 @@ app.use("/uploads", express.static("uploads"));
 
 // Use routes
 app.use('/auth', router);
+app.use('/api/carousel', carouselRoutes);
 app.use('/auth/staff', staffRoutes);
 app.use('/api/outlets', outletRoutes);
 app.use('/api/services', serviceRoutes);
