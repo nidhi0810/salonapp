@@ -39,17 +39,12 @@ const corsOptions = {
 // Use CORS middleware
 app.use(cors(corsOptions));
 
-app.use(cors({
-  origin: 'http://localhost:5000',  // Allow requests from your frontend
-  credentials: true  // Make sure cookies are sent with requests
-}));  // Enable CORS for cross-origin requests
-
 // Session middleware
 app.use(session({
   secret: 'your-secret-key', // Use a strong secret for production
   resave: false,
   saveUninitialized: true,
-  cookie: { httpOnly: true, secure: false } // Set `secure: true` in production (with HTTPS)
+  cookie: { httpOnly: true, secure: true } // Set `secure: true` in production (with HTTPS)
 }));
 
 // Serve static files (HTML, CSS, JS)
