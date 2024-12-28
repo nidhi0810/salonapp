@@ -4,6 +4,7 @@ const session = require('express-session');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const MongoStore = require('connect-mongo');
 
 const connectDB = require('./config/db'); // Import your DB connection
 const router = require('./routes/authRoutes'); 
@@ -40,12 +41,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Session middleware
+
 app.use(session({
-  secret: 'your-secret-key', // Use a strong secret for production
+  store: MongoStore.create({ mongoUrl: 'mongodb://localhost:27017/sessions' }),  // MongoDB connection string for sessions
+  secret: 'your-secret-key',
   resave: false,
-  saveUninitialized: true,
-  cookie: { httpOnly: true, secure: true } // Set `secure: true` in production (with HTTPS)
+  saveUninitialized: false,
+  cookie: { 
+    httpOnly: true,
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24
+  }
 }));
+
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
