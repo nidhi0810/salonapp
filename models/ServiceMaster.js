@@ -23,6 +23,10 @@ const ServiceMasterSchema = new mongoose.Schema({
         required: true,
         enum: ["Hair", "Beauty", "Nail", "Others"], // Restricted options
     },
+    imageUrl: {
+        type: String, // URL of the image
+        required: true, // Optional: If you want to ensure each service has an image
+    },
 });
 
 module.exports = mongoose.model("ServiceMaster", ServiceMasterSchema);

@@ -59,6 +59,7 @@ app.use(session({
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
+app.use("/uploads", express.static("uploads"));
 
 // Use routes
 app.use('/auth', router);
@@ -68,6 +69,10 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api', appointmentRouter); // Ensure it's set correctly
 
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+});
 app.get('/book-appointment', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'bookappointment.html'));
 });
