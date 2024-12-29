@@ -1,8 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
-
+const passport = require('../config/passport'); // Import Passport configuration
 const router = express.Router();
+const axios = require('axios');
 
 // POST route to handle the signup form data
 router.post('/signup', async (req, res) => {

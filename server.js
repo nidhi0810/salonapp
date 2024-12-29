@@ -15,7 +15,13 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const packageRoutes = require('./routes/packageRoutes');
 const appointmentRouter = require('./routes/appointmentRoutes');
 
+const { OAuth2Client } = require('google-auth-library');
+// Replace with your actual client ID and client secret
+const client = new OAuth2Client('537627452553-uj06b6kr62ka99rb7m53rarlsdftg38n.apps.googleusercontent.com');
+
+// Initialize Express app
 const app = express();
+
 
 // Connect to MongoDB
 connectDB();  // Make sure the connection is established before the server starts
@@ -26,6 +32,7 @@ const allowedOrigins = [
     'https://bayleaf.onrender.com']; // Replace with your actual domain
 
 // Middleware to parse JSON data
+app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 const corsOptions = {
   origin: function (origin, callback) {
@@ -57,6 +64,45 @@ app.use(session({
     secure: false,  // Set to `true` if using HTTPS in production
   },
 }));
+
+
+// Route to handle Google Sign-In token verification
+app.post('/google-login', async (req, res) => {
+  const { token, email, mobile } = req.body;
+  
+  try {
+      // Verify the Google ID token using your client ID
+      const ticket = await client.verifyIdToken({
+          idToken: token,
+          audience: '537627452553-uj06b6kr62ka99rb7m53rarlsdftg38n.apps.googleusercontent.com', // Google Client ID from your JSON
+      });
+
+      const payload = ticket.getPayload();
+      console.log('Verified payload:', payload);
+      
+      // Store user information in session
+      req.session.user = {
+          email: email,
+          mobile: mobile,
+          name: payload.name,
+          googleId: payload.sub
+      };
+
+      res.json({ message: 'User logged in successfully', user: req.session.user });
+  } catch (error) {
+      console.error('Error verifying token:', error);
+      res.status(400).json({ error: 'Invalid token or other error' });
+  }
+});
+
+// Route to display the dashboard (only accessible when logged in)
+app.get('/dashboard', (req, res) => {
+  if (req.session.user) {
+      res.json({ message: 'Welcome to your dashboard', user: req.session.user });
+  } else {
+      res.status(401).json({ error: 'You need to login first' });
+  }
+});
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));

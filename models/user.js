@@ -5,6 +5,7 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   mobile: { type: String, required: true, unique: true },
   email: { type: String },
+  googleId: { type: String},
   password: { type: String, required: true },
   role: { type: String, enum: ['customer', 'staff', 'admin'], default: 'customer' },
   appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' }],

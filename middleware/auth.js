@@ -2,7 +2,6 @@
 
 const User = require('../models/user'); // Assuming the user model is here
 
-
 // Middleware to check if the user is logged in and has the "staff" role
 const isAuthenticatedAndStaff = async (req, res, next) => {
   try {

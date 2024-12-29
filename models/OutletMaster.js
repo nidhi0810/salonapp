@@ -60,6 +60,7 @@ const OutletMasterSchema = new mongoose.Schema({
         type: String,
         match: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, // Email validation
     },
+    imageUrl: { type: String, required: true }, // Path to image
 });
 
 module.exports = mongoose.model("OutletMaster", OutletMasterSchema);
