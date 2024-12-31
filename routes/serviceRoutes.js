@@ -3,15 +3,23 @@ const express = require('express');
 const router = express.Router();
 const Service = require('../models/ServiceMaster');  // Import the Service model
 
-// Get all services
+// Backend: Query services by exact match on serviceName
+// Sample Express route to handle the search query
 router.get('/', async (req, res) => {
+    const searchQuery = req.query.search;
+    console.log('Search query:', searchQuery); // Log the search query
+
     try {
-        const services = await Service.find();
+        const services = await Service.find({
+            serviceName: { $regex: new RegExp(searchQuery, 'i') }
+        });
         res.json({ data: services });
-    } catch (err) {
-        res.status(500).json({ message: 'Error fetching services', error: err });
+    } catch (error) {
+        console.error('Error fetching services:', error);
+        res.status(500).send('Error fetching services');
     }
 });
+
 
 // Get services by one or multiple IDs
 router.get('/:ids', async (req, res) => {
@@ -51,4 +59,16 @@ router.post('/services', async (req, res) => {
     }
   });
   
+// Get services by category
+  router.get('/category/:category', async (req, res) => {
+    const category = req.params.category;
+    console.log('Category:', category);  // Log category to ensure it's a string
+    try {
+        const services = await Service.find({ category: category });
+        res.json(services);
+    } catch (error) {
+        console.error('Error fetching package(s):', error);
+        res.status(500).send('Error fetching packages');
+    }
+});
 module.exports = router;

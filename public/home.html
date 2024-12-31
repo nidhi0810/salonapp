@@ -217,7 +217,7 @@
 
         // Fetching carousel data (optional)
          async function fetchCarouselData() {
-            const response = await fetch('http://localhost:5000/api/carousel');
+            const response = await fetch('https://bayleaf.onrender.com/api/carousel');
             const carouselItems = await response.json();
             
             const carouselContent = document.getElementById('carouselContent');

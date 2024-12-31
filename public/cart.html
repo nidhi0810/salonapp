@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salon Appointment Booking</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Book an Appointment</h2>
+        
+        <!-- Search Bar and Category Panel -->
+        <div class="d-flex position-relative">
+            <input type="text" class="form-control me-2" id="search" placeholder="Search services and packages">
+            <button class="btn btn-primary" id="searchButton">Search</button>
+        </div>
+    
+        <div class="row mt-4">
+            <div class="col-3">
+                <div class="list-group" id="categoryPanel">
+                    <!-- Categories will be dynamically added here -->
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="row" id="servicesAndPackages">
+                    <!-- Services and packages will be dynamically displayed here -->
+                </div>
+            </div>
+            <!-- Cart Section -->
+            <div class="col-3">
+                <h4>Cart</h4>
+                <div id="cartItems" class="border p-3 rounded" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Selected items will appear here dynamically -->
+                </div>
+            </div>
+        </div>
+    
+        <div class="mt-4">
+            <textarea class="form-control" id="remarks" placeholder="Add remarks"></textarea>
+            <div class="mt-2">
+                <label for="outlet">Select Outlet:</label>
+                <select class="form-select" id="outlet">
+                    <!-- Outlets will be dynamically added here -->
+                </select>
+            </div>
+    
+            <div class="mt-2">
+                <label for="appointmentDate">Select Date:</label>
+                <input type="date" class="form-control" id="appointmentDate" min="2024-01-01">
+            </div>
+    
+            <div class="mt-2">
+                <label for="appointmentTime">Select Time:</label>
+                <input type="time" class="form-control" id="appointmentTime" min="10:00" max="22:00">
+            </div>
+    
+            <button class="btn btn-success mt-3" id="bookAppointment">Book Appointment</button>
+        </div>
+    </div>
+    
+    <script>
+document.addEventListener('DOMContentLoaded', async () => {
+    let userId = null;
+
+    // Fetch userId and role
+    async function fetchUserId() {
+        try {
+            const userRoleResponse = await fetch(`http://localhost:5000/api/userRole`, { credentials: 'include' });
+            const { role, userId: fetchedUserId } = await userRoleResponse.json();
+
+            if (role === 'customer') {
+                userId = fetchedUserId;
+                console.log('User ID:', userId);
+                // Load categories, outlets, and cart after fetching userId
+                await loadCategories();
+                await loadOutlets();
+                await loadCart();
+            } else {
+                alert('You must be logged in as a customer to access this page.');
+                window.location.href = '/login'; // Redirect to login if not a customer
+            }
+        } catch (error) {
+            console.error('Error fetching user role and ID:', error);
+            alert('Unable to fetch user information. Please try again.');
+        }
+    }
+
+
+// Add to cart
+async function addToCart(itemId, type) {
+    try {
+        const response = await fetch('http://localhost:5000/api/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, itemId, type }),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert('Item added to cart!');
+            console.log('Cart:', result.cart);
+            loadCart(); // Refresh cart
+        } else {
+            const error = await response.json();
+            alert(`Failed to add to cart: ${error.message}`);
+        }
+    } catch (error) {
+        console.error('Error adding to cart:', error);
+        alert('An error occurred while adding to the cart.');
+    }
+}
+
+// Remove from cart
+async function removeFromCart(itemId, type) {
+    try {
+        const response = await fetch('http://localhost:5000/api/cart/remove', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, itemId, type }),
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert('Item removed from cart!');
+            console.log('Cart:', result.cart);
+            loadCart(); // Refresh cart
+        } else {
+            const error = await response.json();
+            alert(`Failed to remove from cart: ${error.message}`);
+        }
+    } catch (error) {
+        console.error('Error removing from cart:', error);
+        alert('An error occurred while removing from the cart.');
+    }
+}
+
+// Load cart items
+async function loadCart() {
+    try {
+        const response = await fetch(`http://localhost:5000/api/cart/${userId}`);
+        if (response.ok) {
+            const cart = await response.json();
+
+            // Check if the cart is empty
+            if (cart.length === 0) {
+                displayCart(cart); // This will show the 'Your cart is empty!' message
+            } else {
+                displayCart(cart); // Proceed to display the cart items
+            }
+        } else {
+            alert('Failed to load cart');
+        }
+    } catch (error) {
+        console.error('Error loading cart:', error);
+    }
+}
+
+// Display cart items
+function displayCart(cart) {
+    const cartItems = document.getElementById('cartItems');
+    cartItems.innerHTML = '';
+
+    if (cart.length === 0) {
+        // If cart is empty, display a message
+        const noItemsMessage = document.createElement('div');
+        noItemsMessage.className = 'cart-item';
+        noItemsMessage.innerHTML = 'Your cart is empty!';
+        cartItems.appendChild(noItemsMessage);
+        return; // Exit the function early
+    }
+
+    // Check if serviceId exists and is an array
+    if (Array.isArray(cart.serviceId) && cart.serviceId.length > 0) {
+        cart.serviceId.forEach(service => {
+            const item = document.createElement('div');
+            item.className = 'cart-item';
+            item.innerHTML = `
+                Service: ${service.name} - ₹${service.price}
+                <button class="btn btn-danger btn-sm" onclick="removeFromCart('${service._id}', 'service')">Remove</button>
+            `;
+            cartItems.appendChild(item);
+        });
+    } else {
+        console.error('serviceId is not an array or is missing in the cart:', cart);
+    }
+
+    // Check if packageId exists and is an array
+    if (Array.isArray(cart.packageId) && cart.packageId.length > 0) {
+        cart.packageId.forEach(pkg => {
+            const item = document.createElement('div');
+            item.className = 'cart-item';
+            item.innerHTML = `
+                Package: ${pkg.name} - ₹${pkg.price}
+                <button class="btn btn-danger btn-sm" onclick="removeFromCart('${pkg._id}', 'package')">Remove</button>
+            `;
+            cartItems.appendChild(item);
+        });
+    } else {
+        console.error('packageId is not an array or is missing in the cart:', cart);
+    }
+}
+// Function to load categories
+async function loadCategories() {
+    try {
+        const response = await fetch('http://localhost:5000/api/categories');
+        const categories = await response.json();
+        const categoryPanel = document.getElementById('categoryPanel');
+
+        // Ensure categories is an array before proceeding
+        if (Array.isArray(categories)) {
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.classList.add('list-group-item', 'list-group-item-action');
+                button.textContent = category; // category is a string now
+                button.addEventListener('click', () => loadServicesByCategory(category));
+                categoryPanel.appendChild(button);
+            });
+        } else {
+            console.error('Categories data is not an array:', categories);
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+
+// Function to load outlets
+async function loadOutlets() {
+    const response = await fetch('http://localhost:5000/api/outlets');
+    const result= await response.json();
+    // Access the `data` array
+    const outlets = result.data;
+    const outletSelect = document.getElementById('outlet');
+
+    outlets.forEach(outlet => {
+        const option = document.createElement('option');
+        option.value = outlet.id;
+        option.textContent = outlet.name;
+        outletSelect.appendChild(option);
+    });
+}
+
+// Function to search services and packages
+async function searchServicesAndPackages(query) {
+    try {
+        // Fetch services and packages
+        const responseServices = await fetch(`http://localhost:5000/api/services?search=${query}`);
+        const servicesResult = await responseServices.json();
+        
+        const responsePackages = await fetch(`http://localhost:5000/api/packages?search=${query}`);
+        const packagesResult = await responsePackages.json();
+
+        // Check if 'data' exists and is an array in both responses
+        const services = Array.isArray(servicesResult.data) ? servicesResult.data : [];
+        const packages = Array.isArray(packagesResult.data) ? packagesResult.data : [];
+
+        // If both services and packages are arrays, call the display function
+        if (services.length > 0 || packages.length > 0) {
+            displayServicesAndPackages(services, packages);  // Pass the arrays to the display function
+        } else {
+            console.error("No services or packages found.");
+        }
+    } catch (error) {
+        console.error("Error fetching services or packages:", error);
+    }
+}
+
+// Function to load services by category
+async function loadServicesByCategory(category) {
+    try {
+        // Fetch services by category from the backend
+        const responseServices = await fetch(`http://localhost:5000/api/services/category/${category}`);
+        const servicesResult = await responseServices.json();
+        console.log(servicesResult);
+        // Check if 'data' exists and is an array
+        const services = Array.isArray(servicesResult) ? servicesResult : [];
+
+        // Fetch packages by category from the backend
+        const responsePackages = await fetch(`http://localhost:5000/api/packages/category/${category}`);
+        const packagesResult = await responsePackages.json();
+        console.log(packagesResult);
+        // Check if 'data' exists and is an array
+        const packages = Array.isArray(packagesResult) ? packagesResult : [];
+        console.log(services, packages);
+        // Display the filtered services and packages
+        displayServicesAndPackages(services, packages);
+    } catch (error) {
+        console.error("Error fetching services or packages:", error);
+    }
+}
+
+
+// Function to display services and packages
+function displayServicesAndPackages(services, packages) {
+    const servicesAndPackages = document.getElementById('servicesAndPackages');
+    servicesAndPackages.innerHTML = '';
+
+    services.forEach(service => {
+        const col = document.createElement('div');
+        col.classList.add('col-3');
+        col.innerHTML = `
+            <div class="card">
+                <img src="${service.imageUrl}" class="card-img-top" alt="${service.serviceName}">
+                <div class="card-body">
+                    <h5 class="card-title">${service.serviceName}</h5>
+                    <p class="card-text">₹${service.price}</p>
+                    <button class="btn btn-primary" onclick="addToCart('${service._id}', 'service')">Add to Cart</button>
+                </div>
+            </div>
+        `;
+        servicesAndPackages.appendChild(col);
+    });
+
+    packages.forEach(pkg => {
+        const col = document.createElement('div');
+        col.classList.add('col-3');
+        col.innerHTML = `
+            <div class="card">
+                <img src="${pkg.imageUrl}" class="card-img-top" alt="${pkg.packageName}">
+                <div class="card-body">
+                    <h5 class="card-title">${pkg.packageName}</h5>
+                    <p class="card-text">₹${pkg.price}</p>
+                    <button class="btn btn-primary" onclick="addToCart('${pkg._id}', 'package')">Add to Cart</button>
+                </div>
+            </div>
+        `;
+        servicesAndPackages.appendChild(col);
+    });
+}
+
+// Function to handle the appointment booking
+async function bookAppointment() {
+    const services = []; // Collect selected services from cart
+    const package = ''; // Collect selected package from cart
+    const remarks = document.getElementById('remarks').value;
+    const appointmentDate = document.getElementById('appointmentDate').value;
+    const appointmentTime = document.getElementById('appointmentTime').value;
+    const outlet = document.getElementById('outlet').value;
+    const price = calculateTotalPrice(); // Assume a function to calculate total price
+
+    const response = await fetch('http://localhost:5000/api/book-appointment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            services,
+            package,
+            remarks,
+            appointmentDate,
+            appointmentTime,
+            outlet,
+            price
+        })
+    });
+
+    if (response.ok) {
+        alert('Appointment booked successfully!');
+    } else {
+        alert('Failed to book appointment.');
+    }
+}
+
+// Function to calculate the total price of selected items in the cart
+function calculateTotalPrice() {
+    const cartItems = document.querySelectorAll('.cart-item');
+    let total = 0;
+    cartItems.forEach(item => {
+        // Assume you have price data in the item
+        total += 100; // Placeholder for actual price calculation
+    });
+    return total;
+}
+
+
+// Event listener for search button to fetch relevant services and packages
+document.getElementById('searchButton').addEventListener('click', () => {
+    const query = document.getElementById('search').value;
+    console.log(query);
+    searchServicesAndPackages(query);  // Trigger search with the entered query
+});
+document.getElementById('bookAppointment').addEventListener('click', bookAppointment);
+
+    // Call fetchUserId initially to set up everything
+    await fetchUserId();
+});
+
+
+
+
+       </script>
+</body>
+</html>

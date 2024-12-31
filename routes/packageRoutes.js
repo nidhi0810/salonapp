@@ -5,12 +5,17 @@ const Package = require('../models/PackageMaster');  // Import the Package model
 
 // Get all packages
 router.get('/', async (req, res) => {
+    const searchQuery = req.query.search;
+    console.log('Search query:', searchQuery); // Log the search query
+
     try {
-        const packages = await Package.find(); // Fetch all packages from the database
+        const packages = await Package.find({
+            packageName: { $regex: new RegExp(searchQuery, 'i') }
+        });
         res.json({ data: packages });
-    } catch (err) {
-        console.error('Error fetching packages:', err.message);
-        res.status(500).json({ message: 'Error fetching packages', error: err.message });
+    } catch (error) {
+        console.error('Error fetching services:', error);
+        res.status(500).send('Error fetching services');
     }
 });
 
@@ -87,6 +92,18 @@ router.delete('/:id', async (req, res) => {
         res.json({ message: 'Package deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: 'Error deleting package', error: err });
+    }
+});
+  // Get packages by category
+  router.get('/category/:category', async (req, res) => {
+    const category = req.params.category;
+    console.log('Category:', category);  // Log category to ensure it's a string
+    try {
+        const packages = await Package.find({ category: category });
+        res.json(packages);
+    } catch (error) {
+        console.error('Error fetching package(s):', error);
+        res.status(500).send('Error fetching packages');
     }
 });
 

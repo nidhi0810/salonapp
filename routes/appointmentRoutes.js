@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Service = require('../models/ServiceMaster'); // Your Service model
 const Package = require('../models/PackageMaster'); // Your Package model
+const Cart = require('../models/Cart');
 const Appointment = require('../models/Appointment');
 const User = require('../models/user'); // Assuming you have a User model to fetch user details
 const nodemailer = require('nodemailer');
@@ -257,11 +258,13 @@ router.put('/appointments/:appointmentId/assign', async (req, res) => {
 // GET /userrole - Fetch the role of the current user
 router.get('/userRole', (req, res) => {
   try {
-    const user = req.session?.user; // Assuming the user object is stored in the session
+    console.log('Session user data:', req.session?.user); // Log session data for debugging
+    const user = req.session?.user;
+    
     if (!user) {
       return res.status(401).json({ success: false, message: 'Unauthorized access' });
     }
-    // Ensure user has a role and userId
+
     if (!user.role || !user.userId) {
       return res.status(400).json({ success: false, message: 'User role or ID missing' });
     }
@@ -272,6 +275,7 @@ router.get('/userRole', (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching user role' });
   }
 });
+
 // GET /staff - Fetch all staff members
 router.get('/staff', async (req, res) => {
   try {
@@ -282,6 +286,108 @@ router.get('/staff', async (req, res) => {
     res.status(500).json({ success: false, message: 'Error fetching staff' });
   }
 });
+
+router.get('/cart/:userId', async (req, res) => {
+  const { userId } = req.params;
+  try {
+      const cart = await Cart.find({ userId });
+      if (cart) {
+          res.json(cart);  // Ensure the cart is an array here
+      } else {
+          res.status(404).json({ message: 'Cart not found' });
+      }
+  } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+// Add to cart
+router.post('/cart/add', async (req, res) => {
+  try {
+    const { userId, itemId, type } = req.body;
+
+    if (!userId || !itemId || !type) {
+      return res.status(400).json({ message: 'Invalid request data' });
+    }
+
+    // Check if a cart exists for the user
+    let cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      cart = new Cart({ userId, serviceId: [], packageId: [] });
+    }
+
+    // Add item to the appropriate field based on type
+    if (type === 'service') {
+      if (!cart.serviceId.includes(itemId)) {
+        cart.serviceId.push(itemId);
+      }
+    } else if (type === 'package') {
+      if (!cart.packageId.includes(itemId)) {
+        cart.packageId.push(itemId);
+      }
+    } else {
+      return res.status(400).json({ message: 'Invalid type' });
+    }
+
+    await cart.save();
+    res.status(200).json({ message: 'Item added to cart', cart });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error adding to cart' });
+  }
+});
+
+// Remove from cart
+router.post('/cart/remove', async (req, res) => {
+  try {
+    const { userId, itemId, type } = req.body;
+
+    if (!userId || !itemId || !type) {
+      return res.status(400).json({ message: 'Invalid request data' });
+    }
+
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart) {
+      return res.status(404).json({ message: 'Cart not found' });
+    }
+
+    // Remove item from the appropriate field based on type
+    if (type === 'service') {
+      cart.serviceId = cart.serviceId.filter(id => id.toString() !== itemId);
+    } else if (type === 'package') {
+      cart.packageId = cart.packageId.filter(id => id.toString() !== itemId);
+    } else {
+      return res.status(400).json({ message: 'Invalid type' });
+    }
+
+    await cart.save();
+    res.status(200).json({ message: 'Item removed from cart', cart });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error removing from cart' });
+  }
+});
+// Get Categories from ServiceMaster and PackageMaster
+router.get("/categories", async (req, res) => {
+  try {
+    // Get distinct categories from ServiceMaster
+    const serviceCategories = await Service.distinct("category");
+
+    // Get distinct categories from PackageMaster
+    const packageCategories = await Package.distinct("category");
+
+    // Combine categories and remove duplicates
+    const allCategories = [...new Set([...serviceCategories, ...packageCategories])];
+
+    res.status(200).json(allCategories);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 
 // Export the router
 module.exports = router;

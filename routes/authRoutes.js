@@ -1,9 +1,38 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
-const passport = require('../config/passport'); // Import Passport configuration
 const router = express.Router();
-const axios = require('axios');
+
+
+router.post('/google', async (req, res) => {
+  const { name, email, googleId } = req.body;
+
+  if (!name || !email || !googleId) {
+    return res.status(400).json({ message: "Invalid data" });
+  }
+
+  try {
+    // Check if a user with the same email already exists
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      // If the user does not exist, create a new user
+      user = new User({ name, email, googleId });
+      await user.save();
+    }
+    // Store user details in session
+    req.session.user = {
+      userId: user._id,
+      name: user.name,   // Assuming the user's name is stored in the "name" field
+      role: user.role,
+    };
+    res.status(200).json({ message: "User authenticated successfully", redirectUrl: "http://localhost:5000" });
+
+  } catch (error) {
+    console.error("Error authenticating user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // POST route to handle the signup form data
 router.post('/signup', async (req, res) => {
@@ -47,16 +76,15 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-
     // Store user details in session
     req.session.user = {
       userId: user._id,
       name: user.name,   // Assuming the user's name is stored in the "name" field
-      mobile: user.mobile // Assuming the user's mobile number is stored in the "mobile" field
+      mobile: user.mobile, // Assuming the user's mobile number is stored in the "mobile" field
+      role: user.role,
     };
 
-
-    res.status(200).json({ message: 'Login successful' });
+    res.status(200).json({ message: "User authenticated successfully", redirectUrl: "http://localhost:5000" });
   } catch (err) {
     res.status(500).json({ message: 'Error logging in', error: err });
   }

@@ -5,6 +5,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const MongoStore = require('connect-mongo');
+const passport = require('passport');
 
 const connectDB = require('./config/db'); // Import your DB connection
 const router = require('./routes/authRoutes'); 
@@ -15,9 +16,6 @@ const serviceRoutes = require('./routes/serviceRoutes');
 const packageRoutes = require('./routes/packageRoutes');
 const appointmentRouter = require('./routes/appointmentRoutes');
 
-const { OAuth2Client } = require('google-auth-library');
-// Replace with your actual client ID and client secret
-const client = new OAuth2Client('537627452553-uj06b6kr62ka99rb7m53rarlsdftg38n.apps.googleusercontent.com');
 
 // Initialize Express app
 const app = express();
@@ -48,7 +46,8 @@ const corsOptions = {
 // Use CORS middleware
 app.use(cors(corsOptions));
 
-// Session middleware
+// middleware
+app.use(passport.initialize());
 
 // Session middleware using MongoDB Atlas URI
 app.use(session({
@@ -66,43 +65,9 @@ app.use(session({
 }));
 
 
-// Route to handle Google Sign-In token verification
-app.post('/google-login', async (req, res) => {
-  const { token, email, mobile } = req.body;
-  
-  try {
-      // Verify the Google ID token using your client ID
-      const ticket = await client.verifyIdToken({
-          idToken: token,
-          audience: '537627452553-uj06b6kr62ka99rb7m53rarlsdftg38n.apps.googleusercontent.com', // Google Client ID from your JSON
-      });
-
-      const payload = ticket.getPayload();
-      console.log('Verified payload:', payload);
-      
-      // Store user information in session
-      req.session.user = {
-          email: email,
-          mobile: mobile,
-          name: payload.name,
-          googleId: payload.sub
-      };
-
-      res.json({ message: 'User logged in successfully', user: req.session.user });
-  } catch (error) {
-      console.error('Error verifying token:', error);
-      res.status(400).json({ error: 'Invalid token or other error' });
-  }
-});
-
-// Route to display the dashboard (only accessible when logged in)
-app.get('/dashboard', (req, res) => {
-  if (req.session.user) {
-      res.json({ message: 'Welcome to your dashboard', user: req.session.user });
-  } else {
-      res.status(401).json({ error: 'You need to login first' });
-  }
-});
+// Google Sign-In route
+/* app.post('/auth/google', googleLogin);
+ */
 
 // Serve static files (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -140,6 +105,12 @@ app.get('/staffsignup', (req, res) => {
 });
 app.get('/appointmentvalidation', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'appointmentvalidation.html'));
+});
+app.get('/services', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'services.html'));
+});
+app.get('/cart', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
 });
 
 // Start the server
