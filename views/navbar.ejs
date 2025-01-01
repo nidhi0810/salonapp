@@ -1,0 +1,93 @@
+<head>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Bootstrap Icons CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"
+    rel="stylesheet"
+  />
+</head>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">Salon</a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link active" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/services">Services</a>
+        </li>
+        </li>
+        <li class="nav-item" id="loginButton">
+          <a class="nav-link" href="/login">Login</a>
+        </li>
+        <li class="nav-item" id="bookAppointment" style="display: none">
+          <a class="nav-link" href="/cart"> Book Appointment</a>
+        </li>
+        <li class="nav-item" id="profileIcon" style="display: none">
+          <a class="nav-link" href="/profile">
+            <i class="bi bi-person-circle"></i>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const loginButton = document.getElementById("loginButton");
+    const profileIcon = document.getElementById("profileIcon");
+    const bookAppointment = document.getElementById("bookAppointment");
+    // Function to check if the user is logged in
+    async function checkUserLogin() {
+      try {
+        const response = await fetch("/api/userRole", {
+          method: "GET", // Assuming GET is used for fetching user role
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // User is logged in
+          loginButton.style.display = "none"; // Hide login button
+          profileIcon.style.display = "block"; // Show profile icon
+          bookAppointment.style.display = "block";
+        } else {
+          // User is not logged in
+          loginButton.style.display = "block"; // Show login button
+          profileIcon.style.display = "none"; // Hide profile icon
+          bookAppointment.style.display = "none";
+        }
+      } catch (error) {
+        console.error("Error checking login status:", error);
+        loginButton.style.display = "block"; // Show login button if there's an error
+        profileIcon.style.display = "none"; // Hide profile icon in case of error
+        bookAppointment.style.display = "none";
+      }
+    }
+
+    // Check login status on page load
+    checkUserLogin();
+  });
+</script>

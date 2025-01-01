@@ -1,33 +1,37 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const path = require('path');
-const MongoStore = require('connect-mongo');
-const passport = require('passport');
+const express = require("express");
+const mongoose = require("mongoose");
+const session = require("express-session");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const path = require("path");
+const MongoStore = require("connect-mongo");
+const passport = require("passport");
 
-const connectDB = require('./config/db'); // Import your DB connection
-const router = require('./routes/authRoutes'); 
-const carouselRoutes = require('./routes/carouselRoutes');
-const staffRoutes = require('./routes/staffRoutes');  
-const outletRoutes = require('./routes/outletRoutes');
-const serviceRoutes = require('./routes/serviceRoutes');
-const packageRoutes = require('./routes/packageRoutes');
-const appointmentRouter = require('./routes/appointmentRoutes');
-
+const connectDB = require("./config/db"); // Import your DB connection
+const router = require("./routes/authRoutes");
+const carouselRoutes = require("./routes/carouselRoutes");
+const staffRoutes = require("./routes/staffRoutes");
+const outletRoutes = require("./routes/outletRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const packageRoutes = require("./routes/packageRoutes");
+const appointmentRouter = require("./routes/appointmentRoutes");
 
 // Initialize Express app
 const app = express();
 
+// Set the view engine to EJS
+app.set("view engine", "ejs");
+// Set the views directory
+app.set("views", path.join(__dirname, "views"));
 
 // Connect to MongoDB
-connectDB();  // Make sure the connection is established before the server starts
+connectDB(); // Make sure the connection is established before the server starts
 
 // Enable CORS for specific domain
 const allowedOrigins = [
-    'http://localhost:5000',
-    'https://bayleaf.onrender.com']; // Replace with your actual domain
+  "http://localhost:5000",
+  "https://bayleaf.onrender.com",
+]; // Replace with your actual domain
 
 // Middleware to parse JSON data
 app.use(express.urlencoded({ extended: true }));
@@ -35,12 +39,12 @@ app.use(bodyParser.json());
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true);  // Allow the request
+      callback(null, true); // Allow the request
     } else {
-      callback(new Error('Not allowed by CORS'));  // Reject the request
+      callback(new Error("Not allowed by CORS")); // Reject the request
     }
   },
-  credentials: true  // Make sure cookies are sent with requests
+  credentials: true, // Make sure cookies are sent with requests
 };
 
 // Use CORS middleware
@@ -50,67 +54,71 @@ app.use(cors(corsOptions));
 app.use(passport.initialize());
 
 // Session middleware using MongoDB Atlas URI
-app.use(session({
-  secret: 'your-secret-key',  // Use a strong secret for production
-  resave: false,
-  saveUninitialized: true,
-  store: MongoStore.create({
-    mongoUrl: 'mongodb+srv://nidhiputhrannp:nid081005@cluster0.yuoi5.mongodb.net/salon?retryWrites=true&w=majority',  // MongoDB Atlas URI
-    ttl: 14 * 24 * 60 * 60,  // Set session expiration (14 days)
-  }),
-  cookie: { 
-    httpOnly: true, 
-    secure: false,  // Set to `true` if using HTTPS in production
-  },
-}));
-
+app.use(
+  session({
+    secret: "your-secret-key", // Use a strong secret for production
+    resave: false,
+    saveUninitialized: true,
+    store: MongoStore.create({
+      mongoUrl:
+        "mongodb+srv://nidhiputhrannp:nid081005@cluster0.yuoi5.mongodb.net/salon?retryWrites=true&w=majority", // MongoDB Atlas URI
+      ttl: 14 * 24 * 60 * 60, // Set session expiration (14 days)
+    }),
+    cookie: {
+      httpOnly: true,
+      secure: false, // Set to `true` if using HTTPS in production
+    },
+  })
+);
 
 // Google Sign-In route
 /* app.post('/auth/google', googleLogin);
  */
 
 // Serve static files (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, 'public')));
 app.use("/uploads", express.static("uploads"));
 
 // Use routes
-app.use('/auth', router);
-app.use('/api/carousel', carouselRoutes);
-app.use('/auth/staff', staffRoutes);
-app.use('/api/outlets', outletRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/packages', packageRoutes);
-app.use('/api', appointmentRouter); // Ensure it's set correctly
+app.use("/auth", router);
+app.use("/api/carousel", carouselRoutes);
+app.use("/auth/staff", staffRoutes);
+app.use("/api/outlets", outletRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/packages", packageRoutes);
+app.use("/api", appointmentRouter); // Ensure it's set correctly
 
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'home.html'));
+app.get("/", (req, res) => {
+  res.render("home"); // Renders the main view
 });
-app.get('/book-appointment', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'bookappointment.html'));
+app.get("/book-appointment", (req, res) => {
+  res.render("bookappointment");
+});
+
+// Serve login page at /login route
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+app.get("/signup", (req, res) => {
+  res.render("signup");
 });
 // Serve login page at /login route
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+app.get("/stafflogin", (req, res) => {
+  res.render("stafflogin");
 });
-app.get('/signup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+app.get("/staffsignup", (req, res) => {
+  res.render("staffsignup");
 });
-// Serve login page at /login route
-app.get('/stafflogin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'stafflogin.html'));
+app.get("/appointmentvalidation", (req, res) => {
+  res.render("appointmentvalidation");
 });
-app.get('/staffsignup', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'staffsignup.html'));
+app.get("/services", (req, res) => {
+  res.render("services"); // Renders the main view
 });
-app.get('/appointmentvalidation', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'appointmentvalidation.html'));
+app.get("/cart", (req, res) => {
+  res.render("cart"); // Renders the main view
 });
-app.get('/services', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'services.html'));
-});
-app.get('/cart', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'cart.html'));
+app.get("/profile", (req, res) => {
+  res.render("editProfile"); // Renders the main view
 });
 
 // Start the server

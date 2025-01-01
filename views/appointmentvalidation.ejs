@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outlet Appointment Management</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+    <style>
+      .container {
+        margin-top: 30px;
+      }
+      .appointment-card {
+        margin-bottom: 15px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+      }
+      .appointment-card h5 {
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center">Outlet Appointment Management</h1>
+      <hr />
+
+      <!-- Appointments Section -->
+      <div id="appointmentsSection">
+        <h2>Appointments</h2>
+        <div id="appointmentsList" class="row"></div>
+      </div>
+    </div>
+
+    <!-- Edit Appointment Modal -->
+    <div
+      class="modal fade"
+      id="editAppointmentModal"
+      tabindex="-1"
+      aria-labelledby="editAppointmentModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editAppointmentModalLabel">
+              Edit Appointment
+            </h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="editAppointmentForm">
+              <div class="mb-3">
+                <label for="appointmentDate" class="form-label">Date</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="appointmentDate"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="appointmentTime" class="form-label">Time</label>
+                <input
+                  type="time"
+                  class="form-control"
+                  id="appointmentTime"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="services" class="form-label">Services</label>
+                <select
+                  class="form-control"
+                  id="services"
+                  multiple
+                  required
+                ></select>
+              </div>
+              <div class="mb-3">
+                <label for="package" class="form-label">Package</label>
+                <select class="form-control" id="package" required></select>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+            <button type="button" class="btn btn-primary" onclick="saveEdit()">
+              Save changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- JavaScript -->
+    <script>
+      const API_URL = "https://bayleaf.onrender.com/api";
+
+      // Fetch Appointments and Render on the Page
+      // Fetch Appointments and Render on the Page
+      async function loadAppointments() {
+        try {
+          const response = await fetch(`${API_URL}/appointments`, {
+            method: "GET",
+            credentials: "include", // Include cookies for authentication
+          });
+
+          // Handle redirection to login
+          if (response.redirected) {
+            window.location.href = response.url; // Redirect to login page
+            return; // Stop further execution
+          }
+
+          // Ensure the response is valid (status code 200-299)
+          if (!response.ok) {
+            throw new Error(
+              `Error fetching appointments: ${response.status} ${response.statusText}`
+            );
+          }
+
+          // Safely parse the JSON response
+          const appointments = await response.json();
+          console.log("Appointments:", appointments);
+
+          const list = document.getElementById("appointmentsList");
+          list.innerHTML = ""; // Clear existing content
+
+          // Fetch the current user role and ID
+          const userRoleResponse = await fetch(`${API_URL}/userRole`, {
+            credentials: "include",
+          });
+          const { role, userId } = await userRoleResponse.json(); // Assuming `userId` is returned along with role
+
+          // Fetch staff details (only if the user is admin)
+          let staffList = [];
+          if (role === "admin") {
+            const staffresponse = await fetch(`${API_URL}/staff`, {
+              method: "GET",
+            });
+            const staffData = await staffresponse.json();
+            staffList = staffData.data || []; // Ensure it's an array
+          }
+
+          console.log("Staff List:", staffList); // Should log the correct list of staff
+
+          // Filter appointments for staff
+          const filteredAppointments =
+            role === "staff"
+              ? appointments.filter((appointment) =>
+                  appointment.assignedTo.includes(userId)
+                ) // Filter by staff's userId
+              : appointments; // For admin, show all appointments
+
+          console.log("Filtered Appointments:", filteredAppointments);
+
+          // Check if there are no appointments
+          if (!filteredAppointments || filteredAppointments.length === 0) {
+            list.innerHTML = "<p>No appointments found.</p>";
+            return;
+          }
+
+          // Render filtered appointments
+          filteredAppointments.forEach((appointment) => {
+            const card = document.createElement("div");
+            card.className = "col-md-4 appointment-card";
+
+            // Extract service names from the services array
+            const serviceNames = appointment.services
+              .map((service) => service.serviceName)
+              .join(", ");
+
+            // Extract package name from the package object
+            const packageName = appointment.package
+              ? appointment.package.packageName
+              : "No package";
+
+            // Add a dropdown for staff assignment if user is admin
+            const assignToDropdown =
+              role === "admin"
+                ? `
+          <div class="d-flex align-items-center mt-2">
+            <label for="assignTo" class="me-2"><strong>Assign To:</strong></label>
+            <select id="assignTo-${
+              appointment._id
+            }" class="form-select me-2" style="width: auto;" multiple>
+              ${staffList
+                .map(
+                  (staff) =>
+                    `<option value="${staff._id}">${staff.name}</option>`
+                )
+                .join("")}
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="assignToStaff('${
+              appointment._id
+            }', '${appointment.status}')">Assign</button>
+          </div>
+        `
+                : "";
+
+            card.innerHTML = `
+  <div class="position-relative">
+    <button 
+      class="btn btn-warning btn-sm position-absolute top-0 end-0" 
+      onclick="openEditModal('${appointment._id}', '${
+              appointment.appointmentDate
+            }', '${appointment.appointmentTime}', '${JSON.stringify(
+              appointment.services
+            )}', '${packageName}')">
+      Edit
+    </button>
+    <h5>${appointment.customerName}</h5>
+    <p><strong>Contact Number:</strong> ${appointment.user?.mobile || "N/A"}</p>
+    <p><strong>Services:</strong> ${serviceNames}</p>
+    <p><strong>Package:</strong> ${packageName}</p>
+    <p><strong>Remarks:</strong> ${appointment.remarks || "No remarks"}</p>
+    <p><strong>Date:</strong> ${new Date(
+      appointment.appointmentDate
+    ).toLocaleDateString()}</p>
+    <p><strong>Time:</strong> ${appointment.appointmentTime || "N/A"}</p>
+    <div>
+      <label for="status-${appointment._id}"><strong>Status:</strong></label>
+      <select 
+        id="status-${appointment._id}" 
+        class="form-select form-select-sm" 
+        onchange="updateAppointment('${
+          appointment._id
+        }', { status: this.value })">
+        <option value="Request Sent" ${
+          appointment.status === "Request Sent" ? "selected" : ""
+        }>Request Sent</option>
+        <option value="Confirmed" ${
+          appointment.status === "Confirmed" ? "selected" : ""
+        }>Confirmed</option>
+        <option value="Cancelled" ${
+          appointment.status === "Cancelled" ? "selected" : ""
+        }>Cancelled</option>
+        <option value="Did Not Turn Up" ${
+          appointment.status === "Did Not Turn Up" ? "selected" : ""
+        }>Did Not Turn Up</option>
+        <option value="Partially Completed" ${
+          appointment.status === "Partially Completed" ? "selected" : ""
+        }>Partially Completed</option>
+        <option value="All Completed" ${
+          appointment.status === "All Completed" ? "selected" : ""
+        }>All Completed</option>
+      </select>
+    </div>
+  `;
+            list.appendChild(card);
+          });
+        } catch (error) {
+          console.error("Error loading appointments:", error);
+
+          // Display error message on the page
+          const list = document.getElementById("appointmentsList");
+          list.innerHTML =
+            "<p>Error loading appointments. Please try again later.</p>";
+        }
+      }
+
+      // Function to assign a staff member to an appointment
+      async function assignToStaff(appointmentId, status) {
+        const dropdown = document.getElementById(`assignTo-${appointmentId}`);
+
+        // Check if dropdown exists
+        if (!dropdown) {
+          console.error("Dropdown not found for appointment:", appointmentId);
+          return;
+        }
+
+        // Get the selected staff IDs (now multiple selections)
+        const staffIds = Array.from(dropdown.selectedOptions).map(
+          (option) => option.value
+        );
+
+        // Check if any staff members are selected
+        console.log("Assigning staff with IDs:", staffIds);
+        if (staffIds.length === 0) {
+          alert("Please select at least one staff member.");
+          return;
+        }
+
+        console.log("Appointment ID:", appointmentId); // Log appointmentId for debugging
+        console.log("Status:", status); // Log status to check its value
+
+        try {
+          const response = await fetch(
+            `${API_URL}/appointments/${appointmentId}/assign`,
+            {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ staffIds }), // Send an array of staff IDs
+            }
+          );
+
+          // Check if the request was successful
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to assign staff");
+          }
+
+          const updatedAppointment = await response.json();
+          console.log("Updated Appointment:", updatedAppointment); // Log the updated appointment
+
+          alert("Staff assigned successfully!");
+          loadAppointments(); // Reload appointments
+        } catch (error) {
+          console.error("Error assigning staff:", error);
+          alert("Failed to assign staff. Please try again.");
+        }
+      }
+
+      // Function to open the modal and populate the fields with the previously stored values
+      async function openEditModal(
+        appointmentId,
+        date,
+        time,
+        services,
+        package
+      ) {
+        // Store the appointmentId globally
+        window.currentAppointmentId = appointmentId;
+
+        // Populate the modal with the current appointment details
+        const appointmentDateField = document.getElementById("appointmentDate");
+        const appointmentTimeField = document.getElementById("appointmentTime");
+
+        // Make sure the fields exist before setting values
+        if (appointmentDateField && appointmentTimeField) {
+          appointmentDateField.value = date; // Set the existing appointment date
+          appointmentTimeField.value = time; // Set the existing appointment time
+        }
+
+        // Fetch available services and populate the services dropdown
+        try {
+          const servicesResponse = await fetch(`${API_URL}/services`);
+          const availableServices = await servicesResponse.json();
+
+          // Ensure the 'data' field exists and is an array
+          if (availableServices.data && Array.isArray(availableServices.data)) {
+            const servicesDropdown = document.getElementById("services");
+            servicesDropdown.innerHTML = ""; // Clear previous options
+
+            availableServices.data.forEach((service) => {
+              const option = document.createElement("option");
+              option.value = service.serviceName; // Get the service name
+              option.text = service.serviceName; // Set the text to the service name
+
+              // Pre-select if the service is already part of the appointment
+              if (services.includes(service.serviceName)) {
+                option.selected = true;
+              }
+
+              servicesDropdown.appendChild(option);
+            });
+          } else {
+            console.error(
+              "Error: Available services are not in the expected format",
+              availableServices
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching services:", error);
+        }
+
+        // Fetch available packages and populate the packages dropdown
+        try {
+          const packagesResponse = await fetch(`${API_URL}/packages`);
+          const availablePackages = await packagesResponse.json();
+
+          // Ensure the 'data' field exists and is an array (adjust this if packages have a different format)
+          if (availablePackages.data && Array.isArray(availablePackages.data)) {
+            const packageDropdown = document.getElementById("package");
+            packageDropdown.innerHTML = ""; // Clear previous options
+
+            availablePackages.data.forEach((pkg) => {
+              const option = document.createElement("option");
+              option.value = pkg.packageName; // Get the package name
+              option.text = pkg.packageName; // Set the text to the package name
+
+              // Pre-select the package if it matches the one from the appointment
+              if (pkg.packageName === package) {
+                option.selected = true;
+              }
+
+              packageDropdown.appendChild(option);
+            });
+          } else {
+            console.error(
+              "Error: Available packages are not in the expected format",
+              availablePackages
+            );
+          }
+        } catch (error) {
+          console.error("Error fetching packages:", error);
+        }
+
+        // Show the modal
+        var myModal = new bootstrap.Modal(
+          document.getElementById("editAppointmentModal"),
+          {
+            keyboard: false,
+          }
+        );
+        myModal.show();
+      }
+
+      // Function to save the changes after editing
+      async function saveEdit() {
+        if (!currentAppointmentId) {
+          console.error("No appointment ID found!");
+          return;
+        }
+        const updatedDate = document.getElementById("appointmentDate").value;
+        const updatedTime = document.getElementById("appointmentTime").value;
+        const selectedServices = Array.from(
+          document.getElementById("services").selectedOptions
+        ).map((option) => option.value);
+        const selectedPackage = document.getElementById("package").value;
+
+        console.log("Updated Appointment:", {
+          updatedDate,
+          updatedTime,
+          selectedServices,
+          selectedPackage,
+        });
+
+        // Close the modal after saving
+        var myModal = bootstrap.Modal.getInstance(
+          document.getElementById("editAppointmentModal")
+        );
+        myModal.hide();
+
+        await updateAppointment(window.currentAppointmentId, {
+          appointmentDate: updatedDate,
+          appointmentTime: updatedTime,
+          services: selectedServices,
+          package: selectedPackage,
+        });
+      }
+
+      // Update Appointment
+      async function updateAppointment(id, updates) {
+        await fetch(`${API_URL}/appointments/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updates),
+        });
+        loadAppointments();
+      }
+
+      // Initial Load
+      loadAppointments();
+    </script>
+  </body>
+</html>
