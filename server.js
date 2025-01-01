@@ -88,7 +88,7 @@ app.use("/api/packages", packageRoutes);
 app.use("/api", appointmentRouter); // Ensure it's set correctly
 
 // Endpoint to serve the Firebase config
-app.get("/firebaseConfig", (req, res) => {
+app.get("/firebaseConfig.js", (req, res) => {
   const firebaseConfig = require("./config/firebaseConfig"); // Import the firebase config
   res.json(firebaseConfig); // Send the JSON response
 });

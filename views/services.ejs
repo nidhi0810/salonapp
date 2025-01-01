@@ -45,7 +45,7 @@
     <script>
       const API_URL = "https://bayleaf.onrender.com/";
       async function fetchServices() {
-        const response = await fetch("${API_URL}/api/services");
+        const response = await fetch(`${API_URL}/api/services`);
         const data = await response.json();
 
         const servicesContent = document.getElementById("servicesContent");
@@ -84,7 +84,7 @@
           }
 
           // Proceed with adding service to cart if user is logged in and a customer
-          const response = await fetch("${API_URL}/api/cart", {
+          const response = await fetch(`${API_URL}/api/cart`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -50,7 +50,7 @@
       document.addEventListener("DOMContentLoaded", async () => {
         try {
           // Fetch user data from /api/userRole
-          const response = await fetch("${API_URL}/api/userRole");
+          const response = await fetch(`${API_URL}/api/userRole`);
           const data = await response.json();
 
           if (!data.success) {
@@ -87,7 +87,7 @@
           const mobile = document.getElementById("mobile").value;
 
           try {
-            const userRoleResponse = await fetch("${API_URL}/api/userRole");
+            const userRoleResponse = await fetch(`${API_URL}/api/userRole`);
             const userRoleData = await userRoleResponse.json();
 
             if (!userRoleData.success) {
@@ -95,7 +95,7 @@
               return;
             }
 
-            const response = await fetch("${API_URL}/auth/profile", {
+            const response = await fetch(`${API_URL}/auth/profile`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
