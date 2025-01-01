@@ -6,7 +6,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
-require("dotenv").config();
+import dotenv from "dotenv";
+dotenv.config();
 
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY,

@@ -88,9 +88,15 @@ app.use("/api/packages", packageRoutes);
 app.use("/api", appointmentRouter); // Ensure it's set correctly
 
 // Endpoint to serve the Firebase config
-app.get("/firebaseConfig.js", (req, res) => {
-  const firebaseConfig = require("./config/firebaseConfig"); // Import the firebase config
-  res.json(firebaseConfig); // Send the JSON response
+app.get("/firebaseConfig.js", async (req, res) => {
+  try {
+    const firebaseConfig = await import("./config/firebaseConfig.mjs"); // Dynamic import for .mjs file
+    res.type("application/javascript"); // Set the correct MIME type for JS
+    res.send(firebaseConfig.default); // Send the content of the firebaseConfig file
+  } catch (err) {
+    console.error("Error serving firebase config:", err);
+    res.status(500).send("Error loading firebase config");
+  }
 });
 
 app.get("/", (req, res) => {
