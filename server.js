@@ -71,10 +71,8 @@ app.use(
   })
 );
 
-// Google Sign-In route
-/* app.post('/auth/google', googleLogin);
- */
-
+// Serve static files from the "public" directory
+app.use(express.static(path.join(__dirname, "public")));
 // Serve static files (HTML, CSS, JS)
 app.use("/uploads", express.static("uploads"));
 
@@ -86,18 +84,6 @@ app.use("/api/outlets", outletRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/packages", packageRoutes);
 app.use("/api", appointmentRouter); // Ensure it's set correctly
-
-// Endpoint to serve the Firebase config
-app.get("/firebaseConfig.js", async (req, res) => {
-  try {
-    const firebaseConfig = await import("./config/firebaseConfig.mjs"); // Dynamic import for .mjs file
-    res.type("application/javascript"); // Set the correct MIME type for JS
-    res.send(firebaseConfig.default); // Send the content of the firebaseConfig file
-  } catch (err) {
-    console.error("Error serving firebase config:", err);
-    res.status(500).send("Error loading firebase config");
-  }
-});
 
 app.get("/", (req, res) => {
   res.render("home"); // Renders the main view
