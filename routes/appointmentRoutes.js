@@ -45,7 +45,7 @@ router.post("/book-appointment", async (req, res) => {
   try {
     const {
       services,
-      package,
+      packages,
       remarks,
       appointmentDate,
       appointmentTime,
@@ -73,7 +73,7 @@ router.post("/book-appointment", async (req, res) => {
       customerName,
       customerMobile,
       services,
-      package,
+      packages,
       remarks,
       appointmentDate,
       appointmentTime,

@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const MongoStore = require("connect-mongo");
 const passport = require("passport");
+const Razorpay = require("razorpay");
 
 const connectDB = require("./config/db"); // Import your DB connection
 const router = require("./routes/authRoutes");
@@ -15,7 +16,8 @@ const outletRoutes = require("./routes/outletRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const packageRoutes = require("./routes/packageRoutes");
 const appointmentRouter = require("./routes/appointmentRoutes");
-
+const dotenv = require("dotenv");
+dotenv.config();
 // Initialize Express app
 const app = express();
 
@@ -71,8 +73,18 @@ app.use(
   })
 );
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, "public")));
+// Firebase configuration served via API
+app.get("/api/firebase-config", (req, res) => {
+  res.json({
+    apiKey: process.env.FIREBASE_API_KEY,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID,
+  });
+});
+
 // Serve static files (HTML, CSS, JS)
 app.use("/uploads", express.static("uploads"));
 
@@ -117,6 +129,10 @@ app.get("/cart", (req, res) => {
 });
 app.get("/profile", (req, res) => {
   res.render("editProfile"); // Renders the main view
+});
+
+app.get("/get-razorpay-key", (req, res) => {
+  res.json({ key: process.env.RAZORPAY_KEY_ID });
 });
 
 // Start the server

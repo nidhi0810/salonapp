@@ -83,7 +83,7 @@ router.post("/google", async (req, res) => {
     };
     res.status(200).json({
       message: "User authenticated successfully",
-      redirectUrl: "http://localhost:5000",
+      redirectUrl: "/",
     });
   } catch (error) {
     console.error("Error authenticating user:", error);
@@ -145,7 +145,7 @@ router.post("/login", async (req, res) => {
 
     res.status(200).json({
       message: "User authenticated successfully",
-      redirectUrl: "http://localhost:5000",
+      redirectUrl: "/",
     });
   } catch (err) {
     res.status(500).json({ message: "Error logging in", error: err });

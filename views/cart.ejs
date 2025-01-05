@@ -9,6 +9,7 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
       .cart-item {
         margin-bottom: 10px; /* Adds space between items */
@@ -94,12 +95,45 @@
         <button class="btn btn-success mt-3" id="bookAppointment">
           Book Appointment
         </button>
+        <!-- Payment Option Modal -->
+        <div
+          class="modal fade"
+          id="paymentModal"
+          tabindex="-1"
+          role="dialog"
+          aria-labelledby="paymentModalLabel"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">
+                  Choose Payment Option
+                </h5>
+              </div>
+              <div class="modal-body">
+                <p>Would you like to pay now or later?</p>
+                <button type="button" class="btn btn-success" id="payNowBtn">
+                  Pay Now
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="payLaterBtn"
+                >
+                  Pay Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <%- include('../views/footer') %>
 
     <script>
       const API_URL = "https://bayleaf.onrender.com";
+
       document.addEventListener("DOMContentLoaded", async () => {
         let userId = null;
 
@@ -432,16 +466,31 @@
 
         // Function to handle the appointment booking
         async function bookAppointment() {
-          const services = []; // Collect selected services from cart
-          const package = ""; // Collect selected package from cart
+          // Fetch the cart data from the API
+          const cartresponse = await fetch(`${API_URL}/api/cart/${userId}`);
+          if (!cartresponse.ok) {
+            alert("Failed to retrieve cart data.");
+            return;
+          }
+
+          const cartData = await cartresponse.json();
+
+          // Assuming the cart data contains arrays of services and packages:
+          const services = cartData.services || []; // Default to an empty array if no services
+          const packages = cartData.packages || []; // Default to an empty array if no packages
+
           const remarks = document.getElementById("remarks").value;
           const appointmentDate =
             document.getElementById("appointmentDate").value;
           const appointmentTime =
             document.getElementById("appointmentTime").value;
           const outlet = document.getElementById("outlet").value;
-          const price = calculateTotalPrice(); // Assume a function to calculate total price
+          const price = await calculateTotalPrice(); // Assume a function to calculate total price
 
+          if (!outlet || !appointmentDate || !appointmentTime) {
+            alert("Please select all required fields: outlet, date, and time.");
+            return;
+          }
           const response = await fetch(`${API_URL}/api/book-appointment`, {
             method: "POST",
             headers: {
@@ -449,7 +498,7 @@
             },
             body: JSON.stringify({
               services,
-              package,
+              packages,
               remarks,
               appointmentDate,
               appointmentTime,
@@ -460,20 +509,121 @@
 
           if (response.ok) {
             alert("Appointment booked successfully!");
+            showPaymentModal(); // Show payment modal after booking
           } else {
             alert("Failed to book appointment.");
           }
         }
 
         // Function to calculate the total price of selected items in the cart
-        function calculateTotalPrice() {
-          const cartItems = document.querySelectorAll(".cart-item");
-          let total = 0;
-          cartItems.forEach((item) => {
-            // Assume you have price data in the item
-            total += 100; // Placeholder for actual price calculation
+        async function calculateTotalPrice() {
+          try {
+            console.log(userId);
+            // Fetch cart data
+            const response = await fetch(`${API_URL}/api/cart/${userId}`);
+            const data = await response.json();
+
+            // Initialize total price
+            let totalPrice = 0;
+
+            // Calculate price from services
+            if (Array.isArray(data.serviceId)) {
+              data.serviceId.forEach((service) => {
+                if (typeof service.price === "number") {
+                  totalPrice += service.price;
+                } else {
+                  console.error("Invalid price format in service:", service);
+                }
+              });
+            }
+
+            // Calculate price from packages
+            if (Array.isArray(data.packageId)) {
+              data.packageId.forEach((packageItem) => {
+                if (typeof packageItem.price === "number") {
+                  totalPrice += packageItem.price;
+                } else {
+                  console.error(
+                    "Invalid price format in package:",
+                    packageItem
+                  );
+                }
+              });
+            }
+
+            // Log and return the total price
+            console.log("Total Price:", totalPrice);
+            return totalPrice;
+          } catch (error) {
+            console.error("Error calculating total price:", error);
+            throw error;
+          }
+        }
+
+        // Show the payment modal
+        function showPaymentModal() {
+          var myModal = new bootstrap.Modal(
+            document.getElementById("paymentModal"),
+            {
+              keyboard: false,
+            }
+          );
+          myModal.show();
+        }
+
+        // Hide the payment modal
+        function hidePaymentModal() {
+          var myModal = bootstrap.Modal.getInstance(
+            document.getElementById("paymentModal")
+          );
+          myModal.hide();
+        }
+        // Payment modal handlers
+        const payNowBtn = document.getElementById("payNowBtn");
+        const payLaterBtn = document.getElementById("payLaterBtn");
+
+        if (payNowBtn) {
+          payNowBtn.addEventListener("click", function () {
+            console.log("Pay Now button clicked");
+            openRazorpay(); // Trigger Razorpay for payment integration
           });
-          return total;
+        }
+
+        if (payLaterBtn) {
+          payLaterBtn.addEventListener("click", function () {
+            console.log("Pay Later button clicked");
+            hidePaymentModal();
+          });
+        }
+
+        async function getRazorpayKey() {
+          const response = await fetch("/get-razorpay-key");
+          const data = await response.json();
+          return data.key;
+        }
+
+        // Razorpay Payment Gateway Function
+        async function openRazorpay() {
+          const razorpayKey = await getRazorpayKey();
+          var options = {
+            key: razorpayKey, // Replace with your Razorpay key
+            amount: calculateTotalPrice(), // Amount in smallest currency unit (e.g., 50000 for Rs. 500)
+            currency: "INR", // Currency code
+            name: "BayLeaf", // Your salon name or business name
+            description: "Appointment Payment",
+            image: "https://example.com/logo.png", // Logo URL
+            handler: function (response) {
+              alert(
+                "Payment successful. Payment ID: " +
+                  response.razorpay_payment_id
+              );
+            },
+            theme: {
+              color: "#F37254",
+            },
+          };
+          var rzp1 = new Razorpay(options);
+          rzp1.open();
         }
 
         // Event listener for search button to fetch relevant services and packages

@@ -38,7 +38,7 @@
         <li class="nav-item" id="loginButton">
           <a class="nav-link" href="/login">Login</a>
         </li>
-        <li class="nav-item" id="bookAppointment" style="display: none">
+        <li class="nav-item" id="bookAppointmentbtn" style="display: none">
           <a class="nav-link" href="/cart"> Book Appointment</a>
         </li>
         <li class="nav-item" id="profileIcon" style="display: none">
@@ -55,7 +55,7 @@
   document.addEventListener("DOMContentLoaded", function () {
     const loginButton = document.getElementById("loginButton");
     const profileIcon = document.getElementById("profileIcon");
-    const bookAppointment = document.getElementById("bookAppointment");
+    const bookAppointmentbtn = document.getElementById("bookAppointmentbtn");
     // Function to check if the user is logged in
     async function checkUserLogin() {
       try {
@@ -72,18 +72,18 @@
           // User is logged in
           loginButton.style.display = "none"; // Hide login button
           profileIcon.style.display = "block"; // Show profile icon
-          bookAppointment.style.display = "block";
+          bookAppointmentbtn.style.display = "block";
         } else {
           // User is not logged in
           loginButton.style.display = "block"; // Show login button
           profileIcon.style.display = "none"; // Hide profile icon
-          bookAppointment.style.display = "none";
+          bookAppointmentbtn.style.display = "none";
         }
       } catch (error) {
         console.error("Error checking login status:", error);
         loginButton.style.display = "block"; // Show login button if there's an error
         profileIcon.style.display = "none"; // Hide profile icon in case of error
-        bookAppointment.style.display = "none";
+        bookAppointmentbtn.style.display = "none";
       }
     }
 
