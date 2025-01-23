@@ -131,6 +131,10 @@ app.get("/profile", (req, res) => {
   res.render("editProfile"); // Renders the main view
 });
 
+app.get("/myappointments", (req, res) => {
+  res.render("myappointments"); // Renders the main view
+});
+
 app.get("/get-razorpay-key", (req, res) => {
   res.json({ key: process.env.RAZORPAY_KEY_ID });
 });

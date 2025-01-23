@@ -66,7 +66,7 @@
                 <input
                   type="date"
                   class="form-control"
-                  id="appointmentDate"
+                  id="appointment-date"
                   required
                 />
               </div>
@@ -75,22 +75,32 @@
                 <input
                   type="time"
                   class="form-control"
-                  id="appointmentTime"
+                  id="appointment-time"
                   required
                 />
               </div>
               <div class="mb-3">
-                <label for="services" class="form-label">Services</label>
-                <select
+                <label for="searchServicesPackages" class="form-label"
+                  >Search Services and Packages</label
+                >
+                <input
+                  type="text"
                   class="form-control"
-                  id="services"
-                  multiple
-                  required
-                ></select>
+                  id="searchServicesPackages"
+                  placeholder="Search for services or packages..."
+                  oninput="filterOptions()"
+                />
+                <div
+                  id="suggestions"
+                  class="dropdown-menu"
+                  style="display: none; position: absolute"
+                ></div>
               </div>
               <div class="mb-3">
-                <label for="package" class="form-label">Package</label>
-                <select class="form-control" id="package" required></select>
+                <label for="selectedItems" class="form-label"
+                  >Selected Services and Packages</label
+                >
+                <div id="selectedItems" class="border p-3"></div>
               </div>
             </form>
           </div>
@@ -118,7 +128,7 @@
 
     <!-- JavaScript -->
     <script>
-      const API_URL = "https://bayleaf.onrender.com/api";
+      const API_URL = "http://localhost:5000/api";
 
       // Fetch Appointments and Render on the Page
       // Fetch Appointments and Render on the Page
@@ -194,9 +204,9 @@
               .join(", ");
 
             // Extract package name from the package object
-            const packageName = appointment.package
-              ? appointment.package.packageName
-              : "No package";
+            const packageNames = appointment.packages
+              .map((package) => package.packageName)
+              .join(", ");
 
             // Add a dropdown for staff assignment if user is admin
             const assignToDropdown =
@@ -223,19 +233,16 @@
 
             card.innerHTML = `
   <div class="position-relative">
-    <button 
-      class="btn btn-warning btn-sm position-absolute top-0 end-0" 
-      onclick="openEditModal('${appointment._id}', '${
-              appointment.appointmentDate
-            }', '${appointment.appointmentTime}', '${JSON.stringify(
-              appointment.services
-            )}', '${packageName}')">
-      Edit
-    </button>
+<button 
+  class="btn btn-warning btn-sm position-absolute top-0 end-0" 
+  onclick="openEditModal('${appointment._id}', '${appointment.user._id}')">
+  Edit
+</button>
+
     <h5>${appointment.customerName}</h5>
     <p><strong>Contact Number:</strong> ${appointment.user?.mobile || "N/A"}</p>
     <p><strong>Services:</strong> ${serviceNames}</p>
-    <p><strong>Package:</strong> ${packageName}</p>
+    <p><strong>Packages:</strong> ${packageNames}</p>
     <p><strong>Remarks:</strong> ${appointment.remarks || "No remarks"}</p>
     <p><strong>Date:</strong> ${new Date(
       appointment.appointmentDate
@@ -337,144 +344,233 @@
       }
 
       // Function to open the modal and populate the fields with the previously stored values
-      async function openEditModal(
-        appointmentId,
-        date,
-        time,
-        services,
-        package
-      ) {
+      async function openEditModal(appointmentId, user) {
         // Store the appointmentId globally
         window.currentAppointmentId = appointmentId;
 
         // Populate the modal with the current appointment details
-        const appointmentDateField = document.getElementById("appointmentDate");
-        const appointmentTimeField = document.getElementById("appointmentTime");
+        const appointmentDateField =
+          document.getElementById("appointment-date");
+        const appointmentTimeField =
+          document.getElementById("appointment-time");
 
-        // Make sure the fields exist before setting values
-        if (appointmentDateField && appointmentTimeField) {
-          appointmentDateField.value = date; // Set the existing appointment date
-          appointmentTimeField.value = time; // Set the existing appointment time
-        }
-
-        // Fetch available services and populate the services dropdown
         try {
-          const servicesResponse = await fetch(`${API_URL}/services`);
-          const availableServices = await servicesResponse.json();
+          // Fetch appointment details using the appointmentId
+          const response = await fetch(`${API_URL}/cart/${user}`);
+          const appointmentData = await response.json();
 
-          // Ensure the 'data' field exists and is an array
-          if (availableServices.data && Array.isArray(availableServices.data)) {
-            const servicesDropdown = document.getElementById("services");
-            servicesDropdown.innerHTML = ""; // Clear previous options
+          if (response.ok && appointmentData) {
+            const { serviceId, packageId, appointmentDate, appointmentTime } =
+              appointmentData;
 
-            availableServices.data.forEach((service) => {
-              const option = document.createElement("option");
-              option.value = service.serviceName; // Get the service name
-              option.text = service.serviceName; // Set the text to the service name
+            // Set the appointment date and time
+            if (appointmentDateField && appointmentTimeField) {
+              appointmentDateField.value = appointmentDate;
+              appointmentTimeField.value = appointmentTime;
+            }
 
-              // Pre-select if the service is already part of the appointment
-              if (services.includes(service.serviceName)) {
-                option.selected = true;
+            // Prepare the selected items (services and packages)
+            const selectedItems = [
+              ...serviceId.map((service) => ({
+                type: "service",
+                name: service.serviceName,
+              })),
+              ...packageId.map((pkg) => ({
+                type: "package",
+                name: pkg.packageName,
+              })),
+            ];
+
+            // Render the selected items in the modal
+            const selectedItemsContainer =
+              document.getElementById("selectedItems");
+            selectedItemsContainer.innerHTML = ""; // Clear any existing items
+            selectedItems.forEach((item) =>
+              addSelectedItem(item, selectedItemsContainer)
+            );
+
+            // Fetch available services and packages
+            let combinedOptions = [];
+            try {
+              const [servicesResponse, packagesResponse] = await Promise.all([
+                fetch(`${API_URL}/services`),
+                fetch(`${API_URL}/packages`),
+              ]);
+              const servicesData = await servicesResponse.json();
+              const packagesData = await packagesResponse.json();
+
+              if (servicesData.data && packagesData.data) {
+                combinedOptions = [
+                  ...servicesData.data.map((service) => ({
+                    type: "service",
+                    name: service.serviceName,
+                  })),
+                  ...packagesData.data.map((pkg) => ({
+                    type: "package",
+                    name: pkg.packageName,
+                  })),
+                ];
+              } else {
+                console.error(
+                  "Error: Invalid services or packages data format"
+                );
               }
+            } catch (error) {
+              console.error("Error fetching services or packages:", error);
+            }
 
-              servicesDropdown.appendChild(option);
-            });
+            // Attach the search box logic
+            const searchBox = document.getElementById("searchServicesPackages");
+            const suggestionsContainer = document.getElementById("suggestions");
+            searchBox.oninput = () =>
+              filterOptions(
+                combinedOptions,
+                suggestionsContainer,
+                selectedItemsContainer
+              );
+
+            // Show the modal
+            var myModal = new bootstrap.Modal(
+              document.getElementById("editAppointmentModal"),
+              {
+                keyboard: false,
+              }
+            );
+            myModal.show();
           } else {
             console.error(
-              "Error: Available services are not in the expected format",
-              availableServices
+              "Error fetching appointment data:",
+              appointmentData.message
             );
           }
         } catch (error) {
-          console.error("Error fetching services:", error);
+          console.error("Error fetching appointment details:", error);
+        }
+      }
+
+      // Function to filter options in the dropdown
+      function filterOptions(
+        combinedOptions,
+        suggestionsContainer,
+        selectedItemsContainer
+      ) {
+        const query = document
+          .getElementById("searchServicesPackages")
+          .value.toLowerCase();
+        suggestionsContainer.innerHTML = ""; // Clear previous suggestions
+
+        if (!query) {
+          suggestionsContainer.style.display = "none";
+          return;
         }
 
-        // Fetch available packages and populate the packages dropdown
-        try {
-          const packagesResponse = await fetch(`${API_URL}/packages`);
-          const availablePackages = await packagesResponse.json();
-
-          // Ensure the 'data' field exists and is an array (adjust this if packages have a different format)
-          if (availablePackages.data && Array.isArray(availablePackages.data)) {
-            const packageDropdown = document.getElementById("package");
-            packageDropdown.innerHTML = ""; // Clear previous options
-
-            availablePackages.data.forEach((pkg) => {
-              const option = document.createElement("option");
-              option.value = pkg.packageName; // Get the package name
-              option.text = pkg.packageName; // Set the text to the package name
-
-              // Pre-select the package if it matches the one from the appointment
-              if (pkg.packageName === package) {
-                option.selected = true;
-              }
-
-              packageDropdown.appendChild(option);
-            });
-          } else {
-            console.error(
-              "Error: Available packages are not in the expected format",
-              availablePackages
-            );
-          }
-        } catch (error) {
-          console.error("Error fetching packages:", error);
-        }
-
-        // Show the modal
-        var myModal = new bootstrap.Modal(
-          document.getElementById("editAppointmentModal"),
-          {
-            keyboard: false,
-          }
+        const filteredOptions = combinedOptions.filter((option) =>
+          option.name.toLowerCase().includes(query)
         );
-        myModal.show();
+
+        filteredOptions.forEach((option) => {
+          const suggestionItem = document.createElement("div");
+          suggestionItem.className = "dropdown-item";
+          suggestionItem.textContent = `${option.name} (${option.type})`;
+          suggestionItem.onclick = () => {
+            addSelectedItem(option, selectedItemsContainer);
+            document.getElementById("searchServicesPackages").value = ""; // Clear search box
+            suggestionsContainer.style.display = "none"; // Hide suggestions
+          };
+          suggestionsContainer.appendChild(suggestionItem);
+        });
+
+        suggestionsContainer.style.display =
+          filteredOptions.length > 0 ? "block" : "none";
+      }
+
+      // Function to add a selected item
+      function addSelectedItem(item, container) {
+        const itemDiv = document.createElement("div");
+        itemDiv.className =
+          "d-flex justify-content-between align-items-center mb-2";
+        itemDiv.textContent = `${item.name} (${item.type})`;
+
+        const removeButton = document.createElement("button");
+        removeButton.className = "btn btn-danger btn-sm";
+        removeButton.textContent = "Remove";
+        removeButton.onclick = () => container.removeChild(itemDiv);
+
+        itemDiv.appendChild(removeButton);
+        container.appendChild(itemDiv);
       }
 
       // Function to save the changes after editing
       async function saveEdit() {
-        if (!currentAppointmentId) {
+        if (!window.currentAppointmentId) {
           console.error("No appointment ID found!");
           return;
         }
-        const updatedDate = document.getElementById("appointmentDate").value;
-        const updatedTime = document.getElementById("appointmentTime").value;
-        const selectedServices = Array.from(
-          document.getElementById("services").selectedOptions
-        ).map((option) => option.value);
-        const selectedPackage = document.getElementById("package").value;
 
-        console.log("Updated Appointment:", {
+        const updatedDate = document.getElementById("appointment-date").value;
+        const updatedTime = document.getElementById("appointment-time").value;
+
+        // Retrieve selected services and packages from the selected items container
+        const selectedItemsContainer = document.getElementById("selectedItems");
+
+        const selectedItems = Array.from(selectedItemsContainer.children).map(
+          (itemDiv) => {
+            const text = itemDiv.textContent.trim(); // Get the text content
+            const [name, typeWithParentheses] = text.split(" (");
+            const type = typeWithParentheses.replace(")", ""); // Remove the closing parenthesis
+            return { name, type };
+          }
+        );
+        console.log(selectedItems);
+        // Separate services and packages
+        const selectedServices = selectedItems
+          .filter((item) => item.type.includes("service"))
+          .map((item) => item.name);
+        const selectedPackages = selectedItems
+          .filter((item) => item.type.includes("package"))
+          .map((item) => item.name);
+
+        // Debug: Log the data to check if it's correct
+        console.log("Updated Appointment Data to be sent:", {
           updatedDate,
           updatedTime,
           selectedServices,
-          selectedPackage,
+          selectedPackages,
         });
 
         // Close the modal after saving
-        var myModal = bootstrap.Modal.getInstance(
+        const myModal = bootstrap.Modal.getInstance(
           document.getElementById("editAppointmentModal")
         );
         myModal.hide();
 
+        // Call the API to update the appointment
         await updateAppointment(window.currentAppointmentId, {
           appointmentDate: updatedDate,
           appointmentTime: updatedTime,
           services: selectedServices,
-          package: selectedPackage,
+          packages: selectedPackages,
         });
       }
 
-      // Update Appointment
       async function updateAppointment(id, updates) {
+        console.log("Updating appointment with data:", updates); // Debugging log
+
         await fetch(`${API_URL}/appointments/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify(updates),
-        });
-        loadAppointments();
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Backend response:", data); // Debugging log for backend response
+            loadAppointments(); // Load the updated appointments list
+          })
+          .catch((error) => {
+            console.error("Error updating appointment:", error);
+          });
       }
 
       // Initial Load

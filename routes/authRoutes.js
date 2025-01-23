@@ -136,12 +136,14 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
     // Store user details in session
+    console.log("Before setting session:", req.session);
     req.session.user = {
       userId: user._id,
-      name: user.name, // Assuming the user's name is stored in the "name" field
-      mobile: user.mobile, // Assuming the user's mobile number is stored in the "mobile" field
+      name: user.name,
+      mobile: user.mobile,
       role: user.role,
     };
+    console.log("After setting session:", req.session);
 
     res.status(200).json({
       message: "User authenticated successfully",

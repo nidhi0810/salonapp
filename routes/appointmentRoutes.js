@@ -122,7 +122,7 @@ router.get("/appointments", isAuthenticatedAndStaff, async (req, res) => {
         select: "serviceName",
       })
       .populate({
-        path: "package",
+        path: "packages",
         select: "packageName",
       })
       .populate({
@@ -140,25 +140,17 @@ router.get("/appointments", isAuthenticatedAndStaff, async (req, res) => {
     res.status(500).json({ message: "Error fetching appointments", error });
   }
 });
-
-// Update Appointment
 router.put("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
   try {
     const appointmentId = req.params.id;
-    const {
-      appointmentDate,
-      appointmentTime,
-      services,
-      package: packageName,
-      status,
-    } = req.body;
+    const { appointmentDate, appointmentTime, services, packages, status } =
+      req.body;
 
-    console.log("Updating appointment:", {
-      appointmentId,
+    console.log("Received update for appointment:", {
       appointmentDate,
       appointmentTime,
       services,
-      packageName,
+      packages,
       status,
     });
 
@@ -168,73 +160,47 @@ router.put("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
       return res.status(404).json({ message: "Appointment not found." });
     }
 
-    // Services: Retain existing if none are provided
+    // Handle services
     let serviceIds = existingAppointment.services;
-    let serviceNames = [];
     if (services && services.length > 0) {
-      // Fetch the corresponding IDs and names for service names
       const foundServices = await Service.find({
         serviceName: { $in: services },
       }).select("_id serviceName");
+      console.log("Found services:", foundServices); // Log found services
       if (foundServices.length !== services.length) {
         return res.status(400).json({ message: "Some services are invalid." });
       }
       serviceIds = foundServices.map((service) => service._id);
-      serviceNames = foundServices.map((service) => service.serviceName);
-    } else {
-      // Fetch service names for existing services
-      const existingServices = await Service.find({
-        _id: { $in: existingAppointment.services },
-      }).select("serviceName");
-      serviceNames = existingServices.map((service) => service.serviceName);
     }
 
-    // Package: Retain existing if none is provided
-    const packageDoc = packageName
-      ? await Package.findOne({ packageName }).select("_id packageName")
-      : {
-          _id: existingAppointment.package,
-          packageName: "No package selected",
-        };
-    if (packageName && !packageDoc) {
-      return res.status(400).json({ message: "Invalid package name." });
+    // Handle packages
+    let packageIds = existingAppointment.packages;
+    if (packages && packages.length > 0) {
+      const foundPackages = await Package.find({
+        packageName: { $in: packages },
+      }).select("_id packageName");
+      console.log("Found packages:", foundPackages); // Log found packages
+      if (foundPackages.length !== packages.length) {
+        return res.status(400).json({ message: "Some packages are invalid." });
+      }
+      packageIds = foundPackages.map((pkg) => pkg._id);
     }
 
-    // Status: Retain existing if none is provided
-    const updatedStatus = status || existingAppointment.status;
-
-    // Update the appointment in the database
+    // Update the appointment with the new values
     const updatedAppointment = await Appointment.findByIdAndUpdate(
       appointmentId,
       {
         appointmentDate: appointmentDate || existingAppointment.appointmentDate,
         appointmentTime: appointmentTime || existingAppointment.appointmentTime,
         services: serviceIds,
-        package: packageDoc._id,
-        status: updatedStatus,
+        packages: packageIds, // Fix for packageId typo
+        status: status || existingAppointment.status,
       },
-      { new: true } // Return the updated document
+      { new: true }
     );
 
     if (!updatedAppointment) {
       return res.status(404).json({ message: "Appointment not found." });
-    }
-
-    // Fetch the customer details to send an email
-    const customer = await User.findById(updatedAppointment.user);
-    console.log("Fetched customer:", customer);
-    if (customer && customer.email) {
-      // Send email to the customer
-      const subject = "Appointment Confirmation";
-      const text = `Your appointment has been confirmed with the following details:
-        Date: ${updatedAppointment.appointmentDate}
-        Time: ${updatedAppointment.appointmentTime}
-        Package: ${packageDoc.packageName}
-        Services: ${serviceNames.join(", ")}`;
-      console.log("Email content prepared:", { subject, text });
-      sendEmail(customer.email, subject, text); // Call the function to send the email
-    } else {
-      console.log("No customer email found");
     }
 
     res.status(200).json({
@@ -242,7 +208,7 @@ router.put("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
       updatedAppointment,
     });
   } catch (error) {
-    console.error("Error updating appointment:", error.message);
+    console.error("Error updating appointment:", error.stack);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
@@ -444,5 +410,26 @@ router.get("/categories", async (req, res) => {
   }
 });
 
+router.get("/users/:userId/appointments", async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Find appointments for the user
+    const userAppointments = await Appointment.find({ user: userId })
+      .populate("services", "serviceName") // Populate only the serviceName field
+      .populate("packages", "packageName"); // Populate only the packageName field
+
+    if (!userAppointments.length) {
+      return res
+        .status(404)
+        .json({ error: "No appointments found for this user" });
+    }
+
+    res.json(userAppointments);
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({ error: "Failed to fetch appointments" });
+  }
+});
 // Export the router
 module.exports = router;

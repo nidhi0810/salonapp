@@ -19,19 +19,84 @@ const appointmentSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      default: "Female", // Default value as per your requirement
-      enum: ["Male", "Female", "Other"], // Possible values for gender
+      default: "Female",
+      enum: ["Male", "Female", "Other"],
     },
+    // Services directly booked in the appointment
     services: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "ServiceMaster", // Reference to the Service model
+        service: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "ServiceMaster", // Reference to the Service model
+          required: true,
+        },
+        assignedTo: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User", // Staff assigned to this service
+        },
+        assignedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User", // Admin who assigned the staff
+        },
+        completedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User", // Staff who completed the service
+        },
+        status: {
+          type: String,
+          enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
+          default: "Assigned",
+        },
+        remarks: {
+          type: String, // Any remarks specific to this service
+        },
       },
     ],
-    package: [
+    // Packages booked in the appointment
+    packages: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PackageMaster", // Reference to the Package model
+        package: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "PackageMaster", // Reference to the Package model
+          required: true,
+        },
+        services: [
+          {
+            service: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "ServiceMaster", // Reference to the Service model within the package
+              required: true,
+            },
+            assignedTo: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User", // Staff assigned to this service
+            },
+            assignedBy: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User", // Admin who assigned the staff
+            },
+            completedBy: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User", // Staff who completed the service
+            },
+            status: {
+              type: String,
+              enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
+              default: "Assigned",
+            },
+            remarks: {
+              type: String, // Any remarks specific to this service
+            },
+          },
+        ],
+        status: {
+          type: String,
+          enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
+          default: "Assigned", // Status of the entire package
+        },
+        remarks: {
+          type: String, // Any remarks for the package as a whole
+        },
       },
     ],
     remarks: {
@@ -43,46 +108,36 @@ const appointmentSchema = new mongoose.Schema(
     },
     appointmentTime: {
       type: String,
-      required: true, // You can store time as string in 'HH:mm' format
-    },
-    assignedTo: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    assignedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      required: true,
     },
     sourceOfAppointment: {
       type: String,
-      enum: ["Call", "SMS", "Whatsapp"], // Appointment source
+      enum: ["Call", "SMS", "Whatsapp"],
     },
     outlet: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Outlet", // Reference to the Outlet model
-      required: true, // Default outlet can be assigned or selected by user
+      ref: "Outlet",
+      required: true,
     },
     price: {
       type: Number,
-      required: true, // Price of the appointment (this can be calculated dynamically)
+      required: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Reference to the User model
-      required: true, // Store user who made the appointment
+      ref: "User",
+      required: true,
     },
     status: {
       type: String,
       enum: [
-        "Request Sent", // Not confirmed
-        "Confirmed", // Once the Outlet staff confirms
-        "Cancelled", // If Customer or Backend Outlet staff cancels
-        "Did Not Turn Up", // To be updated by backend staff
-        "Partially Completed", // To be updated by backend staff
-        "All Completed", // To be updated by backend staff
-        "Overdue", // System updates if the appointment passes the time
+        "Request Sent",
+        "Confirmed",
+        "Cancelled",
+        "Did Not Turn Up",
+        "Partially Completed",
+        "All Completed",
+        "Overdue",
       ],
       default: "Request Sent",
     },
