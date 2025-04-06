@@ -87,6 +87,7 @@ app.get("/api/firebase-config", (req, res) => {
 
 // Serve static files (HTML, CSS, JS)
 app.use("/uploads", express.static("uploads"));
+app.use(express.static("public"));
 
 // Use routes
 app.use("/auth", router);
@@ -130,9 +131,11 @@ app.get("/cart", (req, res) => {
 app.get("/profile", (req, res) => {
   res.render("editProfile"); // Renders the main view
 });
-
 app.get("/myappointments", (req, res) => {
   res.render("myappointments"); // Renders the main view
+});
+app.get("/terms", (req, res) => {
+  res.render("termsconditions"); // Renders the main view
 });
 
 app.get("/get-razorpay-key", (req, res) => {

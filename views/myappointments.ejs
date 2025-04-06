@@ -9,6 +9,13 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
     />
     <style>
+      .sidebar {
+        min-height: 100vh;
+        background-color: #f8f9fa;
+        padding-top: 20px;
+        border-right: 1px solid #ddd;
+      }
+
       .appointment-card {
         display: flex;
         flex-direction: row;
@@ -19,54 +26,83 @@
         margin-bottom: 15px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
+
       .appointment-card .card-info {
         flex: 1;
       }
-      .appointment-card .actions {
-        margin-left: 20px;
-      }
-      .appointment-card .actions button {
-        margin-bottom: 10px;
-      }
+
       .appointment-card .status {
         font-weight: bold;
       }
-      .status.request-sent {
-        color: #007bff;
+
+      .status.carted {
+        color: #ffc107;
       }
+
       .status.confirmed {
         color: #28a745;
       }
+
       .status.completed {
         color: #6c757d;
+      }
+
+      .status.cancelled {
+        color: #dc3545;
+      }
+
+      .status.in-progress {
+        color: #0d6efd;
+      }
+    </style>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      .fixed-navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1040;
+        background-color: white;
+        border-bottom: 1px solid #ddd;
+      }
+      .mt-custom {
+        margin-top: 56px; /* height of fixed navbar */
       }
     </style>
   </head>
   <body>
-    <div class="container mt-5">
-      <h2 class="mb-4">My Appointments</h2>
-      <div id="appointmentsContainer">
-        <!-- Appointments will be dynamically rendered here -->
+    <div class="fixed-navbar"><%- include('navbar') %></div>
+    <div class="container-fluid mt-custom">
+      <div class="row">
+        <%- include('accountpanel') %>
+
+        <div class="col-9 p-4">
+          <h2 class="mb-4">My Appointments</h2>
+          <div id="appointmentsContainer">
+            <!-- Appointments will be dynamically rendered here -->
+          </div>
+        </div>
       </div>
     </div>
 
     <script>
-      const API_URL = "http://localhost:5000";
+      const API_URL = "http://localhost:5000"; // Change if needed
 
-      // Function to fetch user ID and appointments
       const fetchAppointments = async () => {
         try {
-          // Fetch logged-in user's ID
           const userResponse = await fetch(`${API_URL}/api/userRole`);
           const { userId } = await userResponse.json();
 
-          // Fetch appointments for the user
           const appointmentsResponse = await fetch(
             `${API_URL}/api/users/${userId}/appointments`
           );
           const appointments = await appointmentsResponse.json();
 
-          // Render appointments
           renderAppointments(appointments);
         } catch (error) {
           console.error("Error fetching appointments:", error);
@@ -75,32 +111,50 @@
 
       const renderAppointments = (appointments) => {
         const container = document.getElementById("appointmentsContainer");
-        container.innerHTML = ""; // Clear previous content
+        container.innerHTML = "";
+
+        if (appointments.length === 0) {
+          container.innerHTML = `<p>No appointments found.</p>`;
+          return;
+        }
 
         appointments.forEach((appointment) => {
           const card = document.createElement("div");
           card.className = "appointment-card";
+
+          const serviceNames = appointment.services?.length
+            ? appointment.services
+                .map((s) => s.service?.serviceName || "Unnamed Service")
+                .join(", ")
+            : "None";
+
+          const packageNames = appointment.packages?.length
+            ? appointment.packages
+                .map((p) => p.package?.packageName || "Unnamed Package")
+                .join(", ")
+            : "None";
+
           card.innerHTML = `
-      <div class="card-info">
-        <h5 class="card-title">Appointment on ${
-          appointment.appointmentDate
-        } at ${appointment.appointmentTime}</h5>
-        <p class="card-text">Status: <span class="status ${appointment.status
-          .toLowerCase()
-          .replace(" ", "-")}">${appointment.status}</span></p>
-        <p class="card-text">Services: ${appointment.services
-          .map((service) => service.serviceName)
-          .join(", ")}</p>
-        <p class="card-text">Packages: ${appointment.packages
-          .map((pkg) => pkg.packageName)
-          .join(", ")}</p>
-      </div>
-    `;
+            <div class="card-info">
+              <h5 class="card-title">Appointment on ${
+                appointment.appointmentDate
+              } at ${appointment.appointmentTime}</h5>
+              <p class="card-text">Status: 
+                <span class="status ${appointment.status
+                  .toLowerCase()
+                  .replace(" ", "-")}">
+                  ${appointment.status}
+                </span>
+              </p>
+              <p class="card-text"><strong>Services:</strong> ${serviceNames}</p>
+              <p class="card-text"><strong>Packages:</strong> ${packageNames}</p>
+            </div>
+          `;
+
           container.appendChild(card);
         });
       };
 
-      // Fetch appointments on page load
       fetchAppointments();
     </script>
   </body>

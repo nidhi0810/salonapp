@@ -3,7 +3,6 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Service = require("../models/ServiceMaster"); // Your Service model
 const Package = require("../models/PackageMaster"); // Your Package model
-const Cart = require("../models/Cart");
 const Appointment = require("../models/Appointment");
 const User = require("../models/user"); // Assuming you have a User model to fetch user details
 const nodemailer = require("nodemailer");
@@ -40,60 +39,42 @@ const sendEmail = (to, subject, text) => {
   });
 };
 
-// Route to book an appointment
 router.post("/book-appointment", async (req, res) => {
   try {
-    const {
-      services,
-      packages,
-      remarks,
-      appointmentDate,
-      appointmentTime,
-      outlet,
-      price,
-    } = req.body;
+    const { remarks, appointmentDate, appointmentTime, outlet, price } =
+      req.body;
 
     // Check if user is logged in
     if (!req.session.user) {
       return res.status(401).json({ message: "User not logged in" });
     }
 
-    // Fetch user details from the database using the userId from session
-    const user = await User.findById(req.session.user.userId);
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
-    }
+    const userId = req.session.user.userId;
 
-    // Get customer details from user (assuming name and mobile are in user document)
-    const customerName = user.name;
-    const customerMobile = user.mobile;
-
-    // Create a new appointment
-    const newAppointment = new Appointment({
-      customerName,
-      customerMobile,
-      services,
-      packages,
-      remarks,
-      appointmentDate,
-      appointmentTime,
-      outlet,
-      price,
-      user: req.session.user.userId, // Associate the appointment with the logged-in user
-      status: "Request Sent",
+    // Find the existing "Carted" appointment
+    const cartAppointment = await Appointment.findOne({
+      user: userId,
+      status: "Carted",
     });
 
-    // Save the appointment
-    const savedAppointment = await newAppointment.save();
+    if (!cartAppointment) {
+      return res.status(404).json({ message: "No cart appointment found" });
+    }
 
-    // Add the appointment to the user's list of appointments
-    user.appointments.push(savedAppointment._id);
-    await user.save();
+    // Update the appointment fields and status
+    cartAppointment.status = "Request Sent";
+    cartAppointment.remarks = remarks;
+    cartAppointment.appointmentDate = appointmentDate;
+    cartAppointment.appointmentTime = appointmentTime;
+    cartAppointment.outlet = outlet;
+    cartAppointment.price = price;
 
-    res.status(200).json({ message: "Appointment booked successfully!" });
+    await cartAppointment.save();
+
+    res.status(200).json({ message: "Appointment request sent successfully!" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error booking appointment" });
+    res.status(500).json({ message: "Error sending appointment request" });
   }
 });
 
@@ -303,25 +284,28 @@ router.get("/staff", async (req, res) => {
   }
 });
 
+// Replace your existing GET /cart/:userId with this
+
 router.get("/cart/:userId", async (req, res) => {
   const { userId } = req.params;
+
   try {
-    // Fetch the cart and populate serviceId and packageId fields
-    const cart = await Cart.findOne({ userId })
-      .populate("serviceId") // Populating serviceId field with corresponding service objects
-      .populate("packageId"); // Populating packageId field with corresponding package objects
+    const cart = await Appointment.findOne({ user: userId, status: "Carted" })
+      .populate("services.service") // populate services
+      .populate("packages.package") // populate packages
+      .populate("packages.services.service"); // if you want package-internal services populated
 
     if (cart) {
-      res.json(cart); // Send the populated cart
+      res.json(cart);
     } else {
       res.status(404).json({ message: "Cart not found" });
     }
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Error fetching cart:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// Add to cart
 router.post("/cart/add", async (req, res) => {
   try {
     const { userId, itemId, type } = req.body;
@@ -330,21 +314,44 @@ router.post("/cart/add", async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Check if a cart exists for the user
-    let cart = await Cart.findOne({ userId });
+    let cart = await Appointment.findOne({ user: userId, status: "Carted" });
 
     if (!cart) {
-      cart = new Cart({ userId, serviceId: [], packageId: [] });
+      // Fetch user details to fill in the appointment
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      cart = new Appointment({
+        user: userId,
+        services: [],
+        packages: [],
+        status: "Carted",
+        appointmentDate: new Date(), // Temporary placeholder
+        appointmentTime: "00:00", // Temporary placeholder
+        outlet: "000000000000000000000000", // Placeholder - replace as needed
+        customerName: user.name,
+        customerMobile: user.mobile,
+        gender: "Female", // Default; update if you plan to store gender in User
+        price: 0,
+      });
     }
 
-    // Add item to the appropriate field based on type
+    // Add service or package
     if (type === "service") {
-      if (!cart.serviceId.includes(itemId)) {
-        cart.serviceId.push(itemId);
+      const alreadyExists = cart.services.some(
+        (s) => s.service.toString() === itemId
+      );
+      if (!alreadyExists) {
+        cart.services.push({ service: itemId });
       }
     } else if (type === "package") {
-      if (!cart.packageId.includes(itemId)) {
-        cart.packageId.push(itemId);
+      const alreadyExists = cart.packages.some(
+        (p) => p.package.toString() === itemId
+      );
+      if (!alreadyExists) {
+        cart.packages.push({ package: itemId, services: [] });
       }
     } else {
       return res.status(400).json({ message: "Invalid type" });
@@ -358,7 +365,6 @@ router.post("/cart/add", async (req, res) => {
   }
 });
 
-// Remove from cart
 router.post("/cart/remove", async (req, res) => {
   try {
     const { userId, itemId, type } = req.body;
@@ -367,17 +373,20 @@ router.post("/cart/remove", async (req, res) => {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    const cart = await Cart.findOne({ userId });
+    const cart = await Appointment.findOne({ user: userId, status: "Carted" });
 
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Remove item from the appropriate field based on type
     if (type === "service") {
-      cart.serviceId = cart.serviceId.filter((id) => id.toString() !== itemId);
+      cart.services = cart.services.filter(
+        (s) => s.service.toString() !== itemId
+      );
     } else if (type === "package") {
-      cart.packageId = cart.packageId.filter((id) => id.toString() !== itemId);
+      cart.packages = cart.packages.filter(
+        (p) => p.package.toString() !== itemId
+      );
     } else {
       return res.status(400).json({ message: "Invalid type" });
     }
@@ -389,6 +398,7 @@ router.post("/cart/remove", async (req, res) => {
     res.status(500).json({ message: "Error removing from cart" });
   }
 });
+
 // Get Categories from ServiceMaster and PackageMaster
 router.get("/categories", async (req, res) => {
   try {
@@ -414,10 +424,10 @@ router.get("/users/:userId/appointments", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Find appointments for the user
     const userAppointments = await Appointment.find({ user: userId })
-      .populate("services", "serviceName") // Populate only the serviceName field
-      .populate("packages", "packageName"); // Populate only the packageName field
+      .populate("services.service", "serviceName")
+      .populate("packages.package", "packageName")
+      .populate("packages.services.service", "serviceName"); // populate nested services in packages
 
     if (!userAppointments.length) {
       return res

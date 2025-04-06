@@ -131,6 +131,7 @@ const appointmentSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
+        "Carted",
         "Request Sent",
         "Confirmed",
         "Cancelled",
@@ -139,7 +140,7 @@ const appointmentSchema = new mongoose.Schema(
         "All Completed",
         "Overdue",
       ],
-      default: "Request Sent",
+      default: "Carted",
     },
   },
   { timestamps: true }

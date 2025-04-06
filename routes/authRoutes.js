@@ -154,4 +154,17 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.get("/logout", (req, res) => {
+  // Destroy the session if you're using express-session
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+      return res.status(500).send("Error logging out");
+    }
+
+    // Redirect to homepage or login page
+    res.redirect("/");
+  });
+});
+
 module.exports = router;

@@ -61,23 +61,19 @@
         object-fit: cover;
       }
 
-      /* Centering the carousel content */
-      /*         .carousel-inner {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .carousel-item {
-            display: flex;
-            justify-content: center;
-        } */
+      .mt-custom {
+        margin-top: 56px; /* height of fixed navbar */
+      }
     </style>
   </head>
   <body>
-    <%- include('../views/navbar') %>
+    <div class="fixed-navbar"><%- include('navbar') %></div>
     <!-- Carousel Section -->
-    <div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
+    <div
+      id="carouselExample"
+      class="carousel slide mt-custom"
+      data-bs-ride="carousel"
+    >
       <div class="carousel-inner" id="carouselContent"></div>
       <button
         class="carousel-control-prev"
