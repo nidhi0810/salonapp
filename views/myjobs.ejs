@@ -251,7 +251,7 @@
                 <td>${job.name} - ${job.remarks || "None"}</td>
                 <td>${dateStr} ${timeStr}</td>
                 <td>
-                  <select class="form-select form-select-sm">
+                  <select class="form-select form-select-sm" ${job.status === "Cancelled" ? "disabled" : ""}>
                     ${["Assigned", "In Progress", "Completed", "Cancelled"]
                       .map(
                         (opt) =>
