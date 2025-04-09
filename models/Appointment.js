@@ -175,6 +175,25 @@ const appointmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+appointmentSchema.pre("save", function (next) {
+  if (this.isModified("status") && this.status === "Cancelled") {
+    // Cancel all direct services
+    this.services.forEach((s) => {
+      s.status = "Cancelled";
+    });
+
+    // Cancel all packages and their internal services
+    this.packages.forEach((pkg) => {
+      pkg.status = "Cancelled";
+      pkg.services.forEach((ps) => {
+        ps.status = "Cancelled";
+      });
+    });
+  }
+
+  next();
+});
+
 // Create the model from the schema
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 
