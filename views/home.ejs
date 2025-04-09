@@ -65,16 +65,390 @@
         margin-top: 56px; /* height of fixed navbar */
       }
     </style>
+    <style>
+      /* 🎨 Your CSS style goes here */
+      :root {
+        --primary-color: #663399;
+        --secondary-color: #9370db;
+        --accent-color: #e6e6fa;
+        --gradient-primary: linear-gradient(135deg, #663399, #9370db);
+        --gradient-secondary: linear-gradient(135deg, #9370db, #e6e6fa);
+        --text-color: #2c2c2c;
+        --transition-speed: 0.3s;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        color: var(--text-color);
+        line-height: 1.6;
+        background: #fafafa;
+      }
+
+      .carousel-item img {
+        height: 600px;
+        object-fit: cover;
+        filter: brightness(0.7);
+        transition: filter var(--transition-speed);
+      }
+
+      .carousel-item:hover img {
+        filter: brightness(0.9);
+      }
+
+      .carousel-caption {
+        background: rgba(102, 51, 153, 0.8);
+        padding: 2rem;
+        border-radius: 15px;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all var(--transition-speed);
+        max-width: 600px;
+        margin: 0 auto;
+        bottom: 20%;
+      }
+
+      .carousel-caption h5 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .carousel-caption p {
+        font-size: 1.2rem;
+        text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      .carousel-item.active .carousel-caption {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .carousel-control-prev,
+      .carousel-control-next {
+        width: 5%;
+        opacity: 0.8;
+        transition: opacity var(--transition-speed);
+      }
+
+      .carousel-control-prev:hover,
+      .carousel-control-next:hover {
+        opacity: 1;
+      }
+
+      .service-card,
+      .package-card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.1);
+        transition: transform var(--transition-speed),
+          box-shadow var(--transition-speed);
+        margin-bottom: 30px;
+        background: white;
+        animation: fadeInUp 0.6s ease-out forwards;
+        opacity: 0;
+      }
+
+      .service-card:hover,
+      .package-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(102, 51, 153, 0.2);
+      }
+
+      .card-img-top {
+        height: 250px;
+        object-fit: cover;
+        transition: transform var(--transition-speed);
+      }
+
+      .service-card:hover .card-img-top,
+      .package-card:hover .card-img-top {
+        transform: scale(1.05);
+      }
+
+      .card-body {
+        padding: 1.5rem;
+        background: white;
+        border-top: 4px solid transparent;
+        background-image: var(--gradient-secondary);
+        background-clip: padding-box;
+      }
+
+      .card-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 1rem;
+      }
+
+      .flip-card {
+        width: 800px;
+        height: 400px;
+        perspective: 1000px;
+        margin: 0 auto;
+      }
+
+      .flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        transform-style: preserve-3d;
+      }
+
+      .flip-card:hover .flip-card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .flip-card-front,
+      .flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        overflow: hidden;
+      }
+
+      .flip-card-front img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform var(--transition-speed);
+      }
+
+      .flip-card:hover .flip-card-front img {
+        transform: scale(1.1);
+      }
+
+      .flip-card-back {
+        background: var(--gradient-primary);
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        transform: rotateY(180deg);
+        padding: 2rem;
+      }
+
+      .flip-card-back a {
+        position: relative;
+        padding: 1rem 2rem;
+        border: 2px solid white;
+        border-radius: 30px;
+        transition: all var(--transition-speed);
+      }
+
+      .flip-card-back a:hover {
+        background: white;
+        color: var(--primary-color) !important;
+      }
+
+      .container h2 {
+        position: relative;
+        padding-bottom: 1rem;
+        margin-bottom: 3rem;
+        color: var(--primary-color);
+      }
+
+      .container h2::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 3px;
+        background: var(--gradient-primary);
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card {
+        border-color: var(--accent-color);
+      }
+
+      .card:hover {
+        border-color: var(--secondary-color);
+      }
+
+      .btn {
+        background: var(--gradient-primary);
+        color: white;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 25px;
+        transition: all var(--transition-speed);
+      }
+
+      .btn:hover {
+        background: var(--gradient-secondary);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 51, 153, 0.3);
+      }
+
+      @keyframes purpleGlow {
+        0% {
+          box-shadow: 0 0 5px var(--secondary-color);
+        }
+
+        50% {
+          box-shadow: 0 0 20px var(--secondary-color);
+        }
+
+        100% {
+          box-shadow: 0 0 5px var(--secondary-color);
+        }
+      }
+
+      .special-offer {
+        animation: purpleGlow 2s infinite;
+      }
+
+      @media (max-width: 768px) {
+        .flip-card {
+          width: 100%;
+          height: 300px;
+        }
+
+        .carousel-item img {
+          height: 400px;
+        }
+
+        .carousel-caption {
+          padding: 1rem;
+          bottom: 10%;
+        }
+
+        .carousel-caption h5 {
+          font-size: 1.5rem;
+        }
+
+        .carousel-caption p {
+          font-size: 1rem;
+        }
+
+        .card-img-top {
+          height: 200px;
+        }
+      }
+
+      .outlet-card {
+        position: relative;
+        height: 300px;
+        perspective: 1000px;
+      }
+
+      .outlet-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+      }
+
+      .outlet-card:hover .outlet-card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .outlet-card-front,
+      .outlet-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        border-radius: 15px;
+        overflow: hidden;
+      }
+
+      .outlet-card-front {
+        background: white;
+        border-top: 4px solid transparent;
+        background-image: var(--gradient-secondary);
+        background-clip: padding-box;
+      }
+
+      .outlet-card-back {
+        background: white;
+        transform: rotateY(180deg);
+        padding: 0;
+      }
+
+      .map-container {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 15px;
+      }
+
+      .outlet-info {
+        padding: 2rem;
+      }
+
+      .outlet-card i {
+        color: var(--primary-color);
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+      }
+    </style>
   </head>
   <body>
     <div class="fixed-navbar"><%- include('navbar') %></div>
     <!-- Carousel Section -->
-    <div
-      id="carouselExample"
-      class="carousel slide mt-custom"
-      data-bs-ride="carousel"
-    >
-      <div class="carousel-inner" id="carouselContent"></div>
+    <div id="carouselExample" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-inner" id="carouselContent">
+        <!-- Static carousel items -->
+        <div class="carousel-item active">
+          <img
+            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1674&q=80"
+            class="d-block w-100"
+            alt="Luxury Salon Interior"
+            onerror="this.onerror=null; this.src='https://placehold.co/1200x600/9370DB/ffffff/png?text=Luxury+Salon';"
+          />
+          <div class="carousel-caption d-none d-md-block">
+            <h5>Welcome to BayLeaf Salon</h5>
+            <p>
+              Experience luxury and elegance in our state-of-the-art facilities
+            </p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img
+            src="https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80"
+            class="d-block w-100"
+            alt="Professional Hair Styling"
+            onerror="this.onerror=null; this.src='https://placehold.co/1200x600/9370DB/ffffff/png?text=Professional+Services';"
+          />
+          <div class="carousel-caption d-none d-md-block">
+            <h5>Expert Stylists</h5>
+            <p>Our professional team delivers exceptional beauty services</p>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <img
+            src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1769&q=80"
+            class="d-block w-100"
+            alt="Spa and Wellness"
+            onerror="this.onerror=null; this.src='https://placehold.co/1200x600/9370DB/ffffff/png?text=Spa+and+Wellness';"
+          />
+          <div class="carousel-caption d-none d-md-block">
+            <h5>Relaxation & Wellness</h5>
+            <p>Indulge in our premium spa and beauty treatments</p>
+          </div>
+        </div>
+      </div>
       <button
         class="carousel-control-prev"
         type="button"
@@ -108,30 +482,117 @@
     </div>
 
     <!-- Outlets Section -->
-    <div class="container mt-5">
-      <h2 class="text-center mb-4">Our Outlets</h2>
-      <div id="outletsCarousel" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner" id="outletsContent"></div>
-        <button
-          class="carousel-control-prev"
-          type="button"
-          data-bs-target="#outletsCarousel"
-          data-bs-slide="prev"
-        >
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Previous</span>
-        </button>
-        <button
-          class="carousel-control-next"
-          type="button"
-          data-bs-target="#outletsCarousel"
-          data-bs-slide="next"
-        >
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Next</span>
-        </button>
+    <div class="container mt-5 mb-5">
+      <h2 class="text-center">Our Outlets</h2>
+      <div class="row">
+        <div class="col-md-4 mb-4">
+          <div class="outlet-card">
+            <div class="outlet-card-inner">
+              <div class="outlet-card-front">
+                <div class="outlet-info">
+                  <h5 class="card-title">BayLeaf Salon - Chembur</h5>
+                  <p class="card-text">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Shop no A6, Hubtown Season, Ramakrishna Chemburkar Marg,
+                    Postal Colony, Chembur, Mumbai-400074
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-phone"></i>
+                    +91 98765 43210
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-clock"></i>
+                    10:00 AM - 8:00 PM
+                  </p>
+                  <p class="text-muted mt-3">
+                    <small>Hover to view location</small>
+                  </p>
+                </div>
+              </div>
+              <div class="outlet-card-back">
+                <iframe
+                  class="map-container"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.5675187850297!2d72.89631007607563!3d19.0539599812619!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c5f3a5b7b517%3A0x5a4d6b3941070d62!2sHubtown%20Seasons%2C%20Ramakrishna%20Chemburkar%20Marg%2C%20Postal%20Colony%2C%20Chembur%2C%20Mumbai%2C%20Maharashtra%20400071!5e0!3m2!1sen!2sin!4v1710240431044!5m2!1sen!2sin"
+                  loading="lazy"
+                >
+                </iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4">
+          <div class="outlet-card">
+            <div class="outlet-card-inner">
+              <div class="outlet-card-front">
+                <div class="outlet-info">
+                  <h5 class="card-title">BayLeaf Salon - Bandra West</h5>
+                  <p class="card-text">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Shop no. 3, Sant Kutir app, Linking Rd, next to Vijay Sales
+                    showroom, Bandra West, Mumbai-400052
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-phone"></i>
+                    +91 98765 43211
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-clock"></i>
+                    10:00 AM - 8:00 PM
+                  </p>
+                  <p class="text-muted mt-3">
+                    <small>Hover to view location</small>
+                  </p>
+                </div>
+              </div>
+              <div class="outlet-card-back">
+                <iframe
+                  class="map-container"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3771.0731813259287!2d72.82883867607623!3d19.062825181712773!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c9405f2a9bdf%3A0x3c7e3f5c4b6b5c0a!2sLinking%20Rd%2C%20Bandra%20West%2C%20Mumbai%2C%20Maharashtra%20400050!5e0!3m2!1sen!2sin!4v1710240831044!5m2!1sen!2sin"
+                  loading="lazy"
+                >
+                </iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-4">
+          <div class="outlet-card">
+            <div class="outlet-card-inner">
+              <div class="outlet-card-front">
+                <div class="outlet-info">
+                  <h5 class="card-title">BayLeaf Salon - Worli</h5>
+                  <p class="card-text">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Shop 8, Kangra Bhavan, Dr Annie Besant Rd, opp. Poddar
+                    Hospital, B Wing, Worli, Mumbai-400030
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-phone"></i>
+                    +91 98765 43212
+                  </p>
+                  <p class="card-text">
+                    <i class="fas fa-clock"></i>
+                    10:00 AM - 8:00 PM
+                  </p>
+                  <p class="text-muted mt-3">
+                    <small>Hover to view location</small>
+                  </p>
+                </div>
+              </div>
+              <div class="outlet-card-back">
+                <iframe
+                  class="map-container"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3772.6576811930687!2d72.82536147607459!3d18.99338728714247!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7cf2a8c4a8a01%3A0x3a6a3bcd8f3b5b1d!2sDr%20Annie%20Besant%20Rd%2C%20Worli%2C%20Mumbai%2C%20Maharashtra%20400030!5e0!3m2!1sen!2sin!4v1710241231044!5m2!1sen!2sin"
+                  loading="lazy"
+                >
+                </iframe>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+
     <!-- Include Navbar -->
     <%- include('../views/footer') %>
     <script>
@@ -151,6 +612,8 @@
                             <div class="card-body">
                                 <h5 class="card-title">${service.serviceName}</h5>
                                 <p class="card-text">${service.description}</p>
+                                <p class="card-text"><strong>Price: </strong>${service.price}</p>
+                                <p class="card-text"><strong>Time: </strong>${service.timeTaken} minutes</p>
                             </div>
                         </div>
                     </div>
@@ -194,65 +657,9 @@
         });
       }
 
-      // Fetching carousel data (optional)
-      async function fetchCarouselData() {
-        const response = await fetch(
-          "https://bayleaf.onrender.com/api/carousel"
-        );
-        const carouselItems = await response.json();
-
-        const carouselContent = document.getElementById("carouselContent");
-        carouselItems.forEach((item, index) => {
-          const activeClass = index === 0 ? "active" : "";
-          const carouselItem = `
-                    <div class="carousel-item ${activeClass}">
-                        <img src="${item.imageUrl}" class="d-block w-100" alt="${item.title}">
-                        <div class="carousel-caption d-none d-md-block">
-                            <h5>${item.title}</h5>
-                            <p>${item.description}</p>
-                        </div>
-                    </div>
-                `;
-          carouselContent.innerHTML += carouselItem;
-        });
-      }
-
-      // Fetch and display outlets dynamically
-      async function fetchOutlets() {
-        const response = await fetch(
-          "https://bayleaf.onrender.com/api/outlets"
-        );
-        const outlets = await response.json();
-        const outletData = outlets.data; // Accessing the "data" array from response
-
-        const outletsContent = document.getElementById("outletsContent");
-        outletData.forEach((outlet, index) => {
-          const activeClass = index === 0 ? "active" : "";
-          const outletItem = `
-                    <div class="carousel-item ${activeClass}">
-                        <div class="flip-card">
-                            <div class="flip-card-inner">
-                                <div class="flip-card-front">
-                                    <img src="${outlet.imageUrl}" alt="Outlet Image">
-                                </div>
-                                <div class="flip-card-back">
-                                    <a href="${outlet.googleMapLink}" target="_blank" class="text-light text-decoration-none">
-                                        <h5>View Location</h5>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-          outletsContent.innerHTML += outletItem;
-        });
-      }
-
       // Call functions to populate data
       fetchServices();
       fetchPackages();
-      fetchOutlets();
-      fetchCarouselData();
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>

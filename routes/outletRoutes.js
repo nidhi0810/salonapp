@@ -2,6 +2,8 @@
 const express = require("express");
 const router = express.Router();
 const Outlet = require("../models/OutletMaster"); // Import the Outlet model
+const Appointment = require("../models/Appointment");
+const User = require("../models/user");
 
 router.get("/", async (req, res) => {
   try {
@@ -37,64 +39,45 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get a specific outlet by ID
-router.get("/:id", async (req, res) => {
+router.get("/appointments", async (req, res) => {
   try {
-    const outlet = await Outlet.findById(req.params.id);
-    if (!outlet) {
-      return res.status(404).json({ message: "Outlet not found" });
+    console.log("➡️  Incoming GET /appointments request");
+
+    // Check session and user
+    if (!req.session || !req.session.user) {
+      console.warn("❌ No session or user found in session.");
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: No session or user." });
     }
-    res.json({ data: outlet });
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching outlet", error: err });
-  }
-});
 
-// Add a new outlet
-router.post("/", async (req, res) => {
-  const { outletName, location } = req.body;
+    const userId = req.session.user.userId;
+    console.log("👤 Logged-in User ID:", userId);
 
-  try {
-    const newOutlet = new Outlet({ outletName, location });
-    await newOutlet.save();
-    res
-      .status(201)
-      .json({ message: "Outlet created successfully", data: newOutlet });
-  } catch (err) {
-    res.status(500).json({ message: "Error creating outlet", error: err });
-  }
-});
+    // Fetch user with outlet populated
+    const user = await User.findById(userId).populate("outlet");
+    console.log("📦 Populated User:", user);
 
-// Update an outlet
-router.put("/:id", async (req, res) => {
-  const { outletName, location } = req.body;
-
-  try {
-    const updatedOutlet = await Outlet.findByIdAndUpdate(
-      req.params.id,
-      { outletName, location },
-      { new: true }
-    );
-
-    if (!updatedOutlet) {
-      return res.status(404).json({ message: "Outlet not found" });
+    if (!user || !user.outlet) {
+      console.warn("❌ User or outlet not found.");
+      return res.status(404).json({ error: "User outlet not found" });
     }
-    res.json({ message: "Outlet updated successfully", data: updatedOutlet });
-  } catch (err) {
-    res.status(500).json({ message: "Error updating outlet", error: err });
-  }
-});
 
-// Delete an outlet
-router.delete("/:id", async (req, res) => {
-  try {
-    const deletedOutlet = await Outlet.findByIdAndDelete(req.params.id);
-    if (!deletedOutlet) {
-      return res.status(404).json({ message: "Outlet not found" });
-    }
-    res.json({ message: "Outlet deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Error deleting outlet", error: err });
+    console.log("🏬 Fetching appointments for Outlet ID:", user.outlet._id);
+
+    const appointments = await Appointment.find({ outlet: user.outlet._id })
+      .populate("services.service")
+      .populate("services.assignedTo")
+      .populate("packages.package")
+      .populate("packages.services.service")
+      .populate("packages.services.assignedTo")
+      .populate("outlet", "name");
+
+    console.log("✅ Appointments fetched:", appointments.length);
+    res.json({ appointments });
+  } catch (error) {
+    console.error("💥 Error fetching appointments:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

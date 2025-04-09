@@ -10,12 +10,15 @@ const Razorpay = require("razorpay");
 
 const connectDB = require("./config/db"); // Import your DB connection
 const router = require("./routes/authRoutes");
-const carouselRoutes = require("./routes/carouselRoutes");
 const staffRoutes = require("./routes/staffRoutes");
 const outletRoutes = require("./routes/outletRoutes");
 const serviceRoutes = require("./routes/serviceRoutes");
 const packageRoutes = require("./routes/packageRoutes");
 const appointmentRouter = require("./routes/appointmentRoutes");
+
+const InviteToken = require("./models/InviteToken");
+const { checkRole } = require("./middleware/auth");
+
 const dotenv = require("dotenv");
 dotenv.config();
 // Initialize Express app
@@ -72,7 +75,10 @@ app.use(
     },
   })
 );
-
+app.use((req, res, next) => {
+  console.log(`🔁 Incoming request: ${req.method} ${req.url}`);
+  next();
+});
 // Firebase configuration served via API
 app.get("/api/firebase-config", (req, res) => {
   res.json({
@@ -91,18 +97,46 @@ app.use(express.static("public"));
 
 // Use routes
 app.use("/auth", router);
-app.use("/api/carousel", carouselRoutes);
-app.use("/auth/staff", staffRoutes);
+app.use("/api/staff", staffRoutes);
 app.use("/api/outlets", outletRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/packages", packageRoutes);
 app.use("/api", appointmentRouter); // Ensure it's set correctly
 
 app.get("/", (req, res) => {
-  res.render("home"); // Renders the main view
+  const user = req.session.user;
+  if (user.role === "customer") {
+    res.render("home", { user });
+  } else {
+    return res.redirect("/adminviewappointment"); // Redirect to login if not logged in
+  }
 });
-app.get("/book-appointment", (req, res) => {
+
+app.get("/book-appointment", checkRole(["customer"]), (req, res) => {
   res.render("bookappointment");
+});
+app.get("/adminviewappointment", checkRole(["staff", "admin"]), (req, res) => {
+  res.render("adminviewappointment"); // Renders the main view
+});
+app.get("/admininvite", checkRole([, "admin"]), (req, res) => {
+  res.render("admininvite"); // Renders the main view
+});
+app.get("/register/:token", async (req, res) => {
+  const token = req.params.token;
+  const invite = await InviteToken.findOne({ token });
+
+  if (!invite || invite.used) {
+    return res.render("token-invalid"); // Show a "link expired" page
+  }
+
+  res.render("staffsignup", { token }); // or whatever your signup page is
+});
+
+app.get("/staffbookappointment", checkRole(["staff", "admin"]), (req, res) => {
+  res.render("staffbookappointment"); // Renders the main view
+});
+app.get("/myjobs", checkRole(["staff", "admin"]), (req, res) => {
+  res.render("myjobs"); // Renders the main view
 });
 
 // Serve login page at /login route
@@ -112,30 +146,17 @@ app.get("/login", (req, res) => {
 app.get("/signup", (req, res) => {
   res.render("signup");
 });
-// Serve login page at /login route
-app.get("/stafflogin", (req, res) => {
-  res.render("stafflogin");
+app.get("/access-denied", (req, res) => {
+  res.render("access-denied");
 });
-app.get("/staffsignup", (req, res) => {
-  res.render("staffsignup");
-});
-app.get("/appointmentvalidation", (req, res) => {
-  res.render("appointmentvalidation");
-});
-app.get("/services", (req, res) => {
-  res.render("services"); // Renders the main view
-});
-app.get("/cart", (req, res) => {
+app.get("/cart", checkRole(["customer"]), (req, res) => {
   res.render("cart"); // Renders the main view
 });
-app.get("/profile", (req, res) => {
+app.get("/profile", checkRole(["customer"]), (req, res) => {
   res.render("editProfile"); // Renders the main view
 });
-app.get("/myappointments", (req, res) => {
+app.get("/myappointments", checkRole(["customer"]), (req, res) => {
   res.render("myappointments"); // Renders the main view
-});
-app.get("/terms", (req, res) => {
-  res.render("termsconditions"); // Renders the main view
 });
 
 app.get("/get-razorpay-key", (req, res) => {

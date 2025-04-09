@@ -1,0 +1,77 @@
+<!-- adminpanel.ejs -->
+<div
+  class="sidebar d-flex flex-column align-items-center text-white vh-100 p-3"
+  style="background-color: #2e003e"
+>
+  <!-- Profile Icon -->
+  <div class="profile-header mt-4 mb-3">
+    <div class="profile-avatar">
+      <img
+        id="profileImage"
+        src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ccircle cx='60' cy='60' r='60' fill='%239370DB'/%3E%3Ccircle cx='60' cy='45' r='20' fill='%23E6E6FA'/%3E%3Cpath d='M60 75 C40 75 20 95 20 115 L100 115 C100 95 80 75 60 75Z' fill='%23E6E6FA'/%3E%3C/svg%3E"
+        alt="Profile Photo"
+        onerror="this.src='fallback.svg'"
+        class="rounded-circle border border-white"
+      />
+    </div>
+  </div>
+
+  <!-- Staff Info -->
+  <h5 id="staffName" class="text-center text-white">Loading...</h5>
+  <p
+    id="staffOutlet"
+    class="text-muted text-center mb-4"
+    style="color: #ccc !important"
+  >
+    Loading...
+  </p>
+
+  <!-- Navigation Buttons -->
+  <div class="d-grid gap-2 w-100 px-2">
+    <a
+      href="/adminviewappointment"
+      class="btn w-100"
+      style="background-color: #5e2b97; color: white; border: none"
+      >View Appointments</a
+    >
+    <a
+      href="/myjobs"
+      class="btn w-100"
+      style="background-color: #4b0082; color: white; border: none"
+      >My Jobs</a
+    >
+    <a
+      href="/staffbookappointment"
+      class="btn w-100"
+      style="background-color: #7c3aed; color: white; border: none"
+      >Book Appointment</a
+    >
+    <a
+      href="/auth/logout"
+      class="btn w-100"
+      style="background-color: #a83246; color: white; border: none"
+      >Logout</a
+    >
+  </div>
+</div>
+
+<script>
+  async function loadStaffDetails() {
+    try {
+      const roleRes = await fetch("/api/userRole");
+      const roleData = await roleRes.json();
+      if (!roleData.success || roleData.role !== "staff") return;
+
+      const res = await fetch(`/api/staff/dashboard/${roleData.userId}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        document.getElementById("staffName").textContent = data.name;
+        document.getElementById("staffOutlet").textContent = data.outlet;
+      }
+    } catch (err) {
+      console.error("❌ Error loading staff info:", err);
+    }
+  }
+  loadStaffDetails();
+</script>

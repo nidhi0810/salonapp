@@ -32,20 +32,26 @@ const appointmentSchema = new mongoose.Schema(
         },
         assignedTo: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // Staff assigned to this service
+          ref: "user", // Staff assigned to this service
         },
         assignedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // Admin who assigned the staff
+          ref: "user", // Admin who assigned the staff
         },
         completedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // Staff who completed the service
+          ref: "user", // Staff who completed the service
         },
         status: {
           type: String,
-          enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
-          default: "Assigned",
+          enum: [
+            "Not Assigned",
+            "Assigned",
+            "In Progress",
+            "Completed",
+            "Cancelled",
+          ],
+          default: "Not Assigned",
         },
         remarks: {
           type: String, // Any remarks specific to this service
@@ -69,30 +75,54 @@ const appointmentSchema = new mongoose.Schema(
             },
             assignedTo: {
               type: mongoose.Schema.Types.ObjectId,
-              ref: "User", // Staff assigned to this service
+              ref: "user", // Staff assigned to this service
             },
             assignedBy: {
               type: mongoose.Schema.Types.ObjectId,
-              ref: "User", // Admin who assigned the staff
+              ref: "user", // Admin who assigned the staff
             },
             completedBy: {
               type: mongoose.Schema.Types.ObjectId,
-              ref: "User", // Staff who completed the service
+              ref: "user", // Staff who completed the service
             },
             status: {
               type: String,
-              enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
-              default: "Assigned",
+              enum: [
+                "Not Assigned",
+                "Assigned",
+                "In Progress",
+                "Completed",
+                "Cancelled",
+              ],
+              default: "Not Assigned",
             },
             remarks: {
               type: String, // Any remarks specific to this service
             },
           },
         ],
+        assignedTo: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
+        assignedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
+        completedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
         status: {
           type: String,
-          enum: ["Assigned", "In Progress", "Completed", "Cancelled"],
-          default: "Assigned", // Status of the entire package
+          enum: [
+            "Not Assigned",
+            "Assigned",
+            "In Progress",
+            "Completed",
+            "Cancelled",
+          ],
+          default: "Not Assigned", // Status of the entire package
         },
         remarks: {
           type: String, // Any remarks for the package as a whole
@@ -116,7 +146,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     outlet: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Outlet",
+      ref: "OutletMaster",
       required: true,
     },
     price: {
@@ -125,8 +155,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "user",
     },
     status: {
       type: String,

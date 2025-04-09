@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Generate Invite</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        background: #f5f5f5;
+        padding-top: 80px;
+      }
+      .container {
+        max-width: 600px;
+      }
+      #inviteLinkBox {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container text-center">
+      <h1 class="mb-4">Admin Panel</h1>
+      <button id="generateBtn" class="btn btn-primary">
+        Generate Invite Link
+      </button>
+
+      <div id="inviteLinkBox" class="mt-4 alert alert-success">
+        <strong>Invite Link:</strong> <span id="inviteLink"></span>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("generateBtn")
+        .addEventListener("click", async () => {
+          try {
+            const res = await fetch("/auth/admin/generate-invite", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ role: "staff" }), // you can customize the role if needed
+            });
+
+            const data = await res.json();
+
+            if (data.inviteLink) {
+              document.getElementById("inviteLink").textContent =
+                data.inviteLink;
+              document.getElementById("inviteLinkBox").style.display = "block";
+            } else {
+              alert("Failed to generate invite link");
+            }
+          } catch (err) {
+            console.error(err);
+            alert("An error occurred while generating the invite link.");
+          }
+        });
+    </script>
+  </body>
+</html>

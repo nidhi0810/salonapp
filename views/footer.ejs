@@ -1,45 +1,393 @@
-<!-- Footer -->
-<footer class="bg-dark text-light py-4 mt-5">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-4">
-        <h5>About Us</h5>
-        <p>
-          Welcome to Bayleaf Salon! We offer premium hair, beauty, and nail care
-          services to make you look and feel your best.
-        </p>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+/>
+<link
+  href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  :root {
+    --footer-bg: linear-gradient(135deg, #663399, #9370db);
+    --footer-accent: #dd88cf;
+    --footer-text: #f8e7f6;
+    --footer-copyright: rgba(90, 2, 121, 0.95);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  footer {
+    background: var(--footer-bg);
+    color: var(--footer-text);
+    padding: 50px 0 10px;
+    font-family: "Poppins", Arial, sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+
+  footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      45deg,
+      rgba(102, 51, 153, 0.1),
+      rgba(147, 112, 219, 0.1)
+    );
+    animation: gradientMove 15s infinite linear;
+  }
+
+  @keyframes gradientMove {
+    0% {
+      background-position: 0% 0%;
+    }
+
+    100% {
+      background-position: 100% 100%;
+    }
+  }
+
+  .footer-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 30px;
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: left;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-section {
+    flex: 1;
+    min-width: 250px;
+    transform: translateY(0);
+    transition: var(--transition);
+  }
+
+  .footer-section:hover {
+    transform: translateY(-5px);
+  }
+
+  .footer-heading {
+    color: var(--footer-accent);
+    font-size: 24px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    position: relative;
+    padding-bottom: 10px;
+  }
+
+  .footer-heading::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--footer-accent);
+    transition: var(--transition);
+  }
+
+  .footer-section:hover .footer-heading::after {
+    width: 50px;
+  }
+
+  .footer-description {
+    color: var(--footer-text);
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    opacity: 0.9;
+  }
+
+  .footer-links a {
+    color: var(--footer-text);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 10px;
+    transition: var(--transition);
+    position: relative;
+    padding-left: 15px;
+  }
+
+  .footer-links a::before {
+    content: "→";
+    position: absolute;
+    left: -10px;
+    opacity: 0;
+    transition: var(--transition);
+  }
+
+  .footer-links a:hover {
+    color: var(--footer-accent);
+    padding-left: 20px;
+  }
+
+  .footer-links a:hover::before {
+    left: 0;
+    opacity: 1;
+  }
+
+  .contact-info p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    transition: var(--transition);
+  }
+
+  .contact-info p:hover {
+    transform: translateX(5px);
+  }
+
+  .contact-info i {
+    color: var(--footer-accent);
+    transition: var(--transition);
+  }
+
+  .contact-info p:hover i {
+    transform: scale(1.2);
+  }
+
+  .social-icons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+  }
+
+  .social-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    color: white;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .social-icon.facebook {
+    background: linear-gradient(45deg, #3b5998, #4c70ba);
+    box-shadow: 0 4px 12px rgba(59, 89, 152, 0.2);
+  }
+
+  .social-icon.instagram {
+    background: linear-gradient(
+      45deg,
+      #f09433 0%,
+      #e6683c 25%,
+      #dc2743 50%,
+      #cc2366 75%,
+      #bc1888 100%
+    );
+    box-shadow: 0 4px 12px rgba(225, 48, 108, 0.2);
+  }
+
+  .social-icon.youtube {
+    background: linear-gradient(45deg, #ff0000, #ff4444);
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.2);
+  }
+
+  .social-icon.whatsapp {
+    background: linear-gradient(45deg, #25d366, #128c7e);
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
+  }
+
+  .social-icon::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    opacity: 0;
+    z-index: 1;
+    transition: var(--transition);
+  }
+
+  .social-icon:hover {
+    transform: translateY(-5px) rotate(360deg);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  .social-icon:hover::after {
+    opacity: 0.7;
+  }
+
+  .social-icon i {
+    position: relative;
+    z-index: 2;
+    transition: var(--transition);
+  }
+
+  .social-icon:hover i {
+    transform: scale(1.2);
+    color: white;
+  }
+
+  .social-icon.facebook:hover {
+    background: linear-gradient(45deg, #4c70ba, #3b5998);
+  }
+
+  .social-icon.instagram:hover {
+    background: linear-gradient(45deg, #bc1888, #e6683c, #f09433);
+  }
+
+  .social-icon.youtube:hover {
+    background: linear-gradient(45deg, #ff4444, #ff0000);
+  }
+
+  .social-icon.whatsapp:hover {
+    background: linear-gradient(45deg, #128c7e, #25d366);
+  }
+
+  @keyframes iconSpin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+    }
+
+    70% {
+      box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+  }
+
+  .social-icon:hover {
+    animation: pulse 1.5s infinite;
+  }
+
+  .copyright {
+    text-align: center;
+    background-color: var(--footer-copyright);
+    color: var(--footer-text);
+    padding: 15px 0;
+    font-size: 14px;
+    margin-top: 30px;
+    position: relative;
+    backdrop-filter: blur(5px);
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .footer-section {
+    animation: fadeInUp 0.6s ease-out forwards;
+    animation-delay: calc(var(--order) * 0.2s);
+    opacity: 0;
+  }
+
+  @media (max-width: 1024px) {
+    .footer-container {
+      gap: 40px;
+    }
+
+    .footer-section {
+      min-width: 200px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .footer-container {
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .social-icons {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (hover: none) {
+    .footer-section:hover {
+      transform: none;
+    }
+
+    .footer-links a:hover {
+      padding-left: 15px;
+    }
+  }
+</style>
+
+<footer>
+  <div class="footer-container">
+    <!-- Column 1: About -->
+    <div class="footer-section" style="--order: 1">
+      <h3 class="footer-heading">About Us</h3>
+      <p class="footer-description">
+        Welcome to Bayleaf Salon! We offer premium hair, beauty, and nail care
+        services to make you look and feel your best.
+      </p>
+
+      <div class="social-icons">
+        <a href="#" class="social-icon facebook"
+          ><i class="fab fa-facebook-f"></i
+        ></a>
+        <a href="#" class="social-icon instagram"
+          ><i class="fab fa-instagram"></i
+        ></a>
+        <a href="#" class="social-icon youtube"
+          ><i class="fab fa-youtube"></i
+        ></a>
+        <a href="#" class="social-icon whatsapp"
+          ><i class="fab fa-whatsapp"></i
+        ></a>
       </div>
-      <div class="col-md-4">
-        <h5>Quick Links</h5>
-        <ul class="list-unstyled">
-          <li>
-            <a href="#services" class="text-light text-decoration-none"
-              >Services</a
-            >
-          </li>
-          <li>
-            <a href="#packages" class="text-light text-decoration-none"
-              >Packages</a
-            >
-          </li>
-          <li>
-            <a href="#outlets" class="text-light text-decoration-none"
-              >Outlets</a
-            >
-          </li>
-          <li>
-            <a href="#contact" class="text-light text-decoration-none"
-              >Contact</a
-            >
-          </li>
-        </ul>
+    </div>
+
+    <!-- Column 2: Quick Links -->
+    <div class="footer-section" style="--order: 2">
+      <h3 class="footer-heading">Quick Links</h3>
+      <div class="footer-links">
+        <a href="#">Services</a>
+        <a href="#">Packages</a>
+        <a href="#">Outlets</a>
+        <a href="#">Contact</a>
       </div>
-      <div class="col-md-4">
-        <h5>Contact Us</h5>
+    </div>
+
+    <!-- Column 3: Contact -->
+    <div class="footer-section" style="--order: 3">
+      <h3 class="footer-heading">Contact Us</h3>
+      <div class="contact-info">
         <p><i class="fas fa-phone"></i> +91 9619306512</p>
-        <p><i class="fas fa-envelope"></i> nidhiputhrannp@gmail.com</p>
+        <p><i class="fas fa-envelope"></i> nidhipithrannp@gmail.com</p>
         <p><i class="fas fa-map-marker-alt"></i> Mumbai, India</p>
       </div>
     </div>
   </div>
+
+  <!-- Copyright Section -->
+  <div class="copyright">&copy; 2025 Bay Leaf Salon. All rights reserved.</div>
 </footer>

@@ -9,103 +9,218 @@
       rel="stylesheet"
     />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-
     <style>
       body {
-        background-color: #fff;
-        color: #000;
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        overflow: hidden;
       }
-      .navbar {
-        background-color: #000;
+
+      /* 🌌 Animated Gradient Background */
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: linear-gradient(-45deg, #9370db, #663399, #7a5cc7, #baa8f3);
+        background-size: 400% 400%;
+        animation: gradientShift 12s ease infinite;
+        z-index: -1;
       }
-      .navbar-brand,
-      .nav-link {
-        color: #fff !important;
+
+      @keyframes gradientShift {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
       }
-      .navbar-brand:hover,
-      .nav-link:hover {
-        color: #ccc !important;
+
+      .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        position: relative;
       }
-      .login-section {
-        background-color: #000;
-        color: #fff;
-        padding: 80px 0;
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
       }
-      .login-card {
-        background-color: #f8f9fa;
-        padding: 30px;
+
+      .form-control:focus {
+        border-color: #9370db;
+        box-shadow: 0 0 0 0.25rem rgba(147, 112, 219, 0.25);
+      }
+
+      .btn-login {
+        background: linear-gradient(135deg, #663399, #9370db);
+        color: white;
+        border: none;
+        width: 100%;
+        padding: 10px;
+        font-weight: 600;
         border-radius: 8px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: background 0.3s, transform 0.2s;
       }
-      .login-card input {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        color: #000;
+
+      .btn-login:hover {
+        background: linear-gradient(135deg, #7a5cc7, #baa8f3);
       }
-      .login-card button {
-        background-color: #000;
-        color: #fff;
+
+      .google-btn {
+        margin-top: 15px;
+        background: white;
+        color: #444;
+        border: 1px solid #ccc;
+        width: 100%;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
       }
+
+      .google-btn img {
+        height: 20px;
+        margin-right: 10px;
+      }
+
+      .google-btn:hover {
+        background-color: #f1f1f1;
+      }
+
+      .forgot-password {
+        text-align: right;
+        margin-top: 10px;
+      }
+      a {
+        color: #9370db;
+      }
+
+      a:hover {
+        color: #7a5cc7;
+      }
+    </style>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", sans-serif;
+        overflow: hidden;
+        height: 100vh;
+        background-color: #663399;
+        position: relative;
+      }
+
+      #gradient-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        z-index: -1;
+        pointer-events: none;
+        background: radial-gradient(
+          circle at center,
+          #8269d5 0%,
+          #734cc3 40%,
+          #663399 80%
+        );
+        transition: background 0.1s ease-out;
+      }
+
+      .login-container {
+        max-width: 400px;
+        margin: 100px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+        z-index: 10;
+        position: relative;
+      }
+
+      /* (Keep your other styles like .btn-login, .google-btn, etc.) */
     </style>
   </head>
   <body>
-    <%- include('../views/navbar') %>
-    <!-- Login Section -->
-    <section class="login-section">
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-md-6">
-            <div class="login-card">
-              <h2 class="text-center mb-4">Login</h2>
-              <form id="loginForm" method="POST" action="/login">
-                <div class="mb-3">
-                  <label for="email" class="form-label">Email Address</label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
-                <div class="mb-3">
-                  <label for="password" class="form-label">Password</label>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    placeholder="Enter your password"
-                    required
-                  />
-                </div>
-                <button type="submit" class="btn btn-dark w-100">Login</button>
-              </form>
+    <div id="gradient-bg"></div>
 
-              <div class="container mt-5">
-                <!-- <h1>Google One-Tap Login</h1> -->
-                <button id="googleSignInButton" class="btn btn-outline-primary">
-                  Sign in with Google
-                </button>
-              </div>
-
-              <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-              <div class="mt-3 text-center">
-                <p>
-                  Don't have an account?
-                  <a href="/signup" class="text-decoration-none"
-                    >Sign up here</a
-                  >
-                </p>
-              </div>
-            </div>
+    <div class="container">
+      <div class="login-container">
+        <div class="login-header">
+          <h3>Login</h3>
+        </div>
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              name="email"
+              required
+            />
           </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              required
+            />
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="rememberMe" />
+            <label class="form-check-label" for="rememberMe">Remember me</label>
+          </div>
+          <button type="submit" class="btn btn-login">Login</button>
+          <div class="forgot-password">
+            <a href="#" id="forgotPassword">Forgot Password?</a>
+          </div>
+        </form>
+
+        <button id="googleSignInButton" class="google-btn">
+          <img
+            src="https://developers.google.com/identity/images/g-logo.png"
+            alt="Google logo"
+          />
+          Login with Google
+        </button>
+
+        <div class="text-center mt-3">
+          <p>Don't have an account? <a href="/signup">Sign up</a></p>
         </div>
       </div>
-    </section>
+    </div>
+    <script>
+      const gradientBg = document.getElementById("gradient-bg");
+
+      document.addEventListener("mousemove", (e) => {
+        const x = (e.clientX / window.innerWidth) * 100;
+        const y = (e.clientY / window.innerHeight) * 100;
+        gradientBg.style.background = `radial-gradient(circle at ${x}% ${y}%, #baa8f3, #9370db 40%, #663399 80%)`;
+      });
+    </script>
 
     <script>
-      const API_URL = "http://localhost:5000";
+      const API_URL = "https://bayleaf.onrender.com";
       document
         .getElementById("loginForm")
         .addEventListener("submit", async function (e) {

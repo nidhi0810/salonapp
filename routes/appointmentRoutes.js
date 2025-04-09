@@ -6,7 +6,6 @@ const Package = require("../models/PackageMaster"); // Your Package model
 const Appointment = require("../models/Appointment");
 const User = require("../models/user"); // Assuming you have a User model to fetch user details
 const nodemailer = require("nodemailer");
-const { isAuthenticatedAndStaff } = require("../middleware/auth");
 
 // Create a transporter object using the default SMTP transport
 const transporter = nodemailer.createTransport({
@@ -48,7 +47,7 @@ router.post("/book-appointment", async (req, res) => {
     if (!req.session.user) {
       return res.status(401).json({ message: "User not logged in" });
     }
-
+    console.log(remarks, appointmentDate, appointmentTime, outlet, price);
     const userId = req.session.user.userId;
 
     // Find the existing "Carted" appointment
@@ -61,7 +60,7 @@ router.post("/book-appointment", async (req, res) => {
       return res.status(404).json({ message: "No cart appointment found" });
     }
 
-    // Update the appointment fields and status
+    // Update appointment fields and status
     cartAppointment.status = "Request Sent";
     cartAppointment.remarks = remarks;
     cartAppointment.appointmentDate = appointmentDate;
@@ -71,6 +70,28 @@ router.post("/book-appointment", async (req, res) => {
 
     await cartAppointment.save();
 
+    // Fetch user email and name
+    const user = await User.findById(userId); // Assuming you have a User model
+    if (user && user.email) {
+      const subject = "BayLeaf Salon - Appointment Confirmation";
+      const message = `
+Hi ${user.name || "Customer"},
+
+Your appointment request has been successfully received.
+
+📅 Date: ${appointmentDate}
+⏰ Time: ${appointmentTime}
+🏢 Outlet: ${outlet}
+💬 Remarks: ${remarks}
+💰 Price: ₹${price}
+
+Thank you for choosing BayLeaf Salon!
+We look forward to seeing you. 💇‍♀️✨
+`;
+
+      sendEmail(user.email, subject, message);
+    }
+
     res.status(200).json({ message: "Appointment request sent successfully!" });
   } catch (error) {
     console.error(error);
@@ -78,7 +99,7 @@ router.post("/book-appointment", async (req, res) => {
   }
 });
 
-router.get("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
+router.get("/appointments/:id", async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
     if (!appointment) {
@@ -91,37 +112,7 @@ router.get("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
   }
 });
 
-// Get All Appointments
-router.get("/appointments", isAuthenticatedAndStaff, async (req, res) => {
-  try {
-    console.log("Attempting to fetch appointments from the database"); // Debug statement 2
-
-    // Fetch appointments with populated fields
-    const appointments = await Appointment.find()
-      .populate({
-        path: "services",
-        select: "serviceName",
-      })
-      .populate({
-        path: "packages",
-        select: "packageName",
-      })
-      .populate({
-        path: "user",
-        model: "user",
-        select: "mobile",
-      })
-      .exec();
-
-    console.log("Fetched appointments successfully:"); // Debug statement 3
-
-    res.status(200).json(appointments);
-  } catch (error) {
-    console.error("Error fetching appointments:", error); // Add debug logging for errors
-    res.status(500).json({ message: "Error fetching appointments", error });
-  }
-});
-router.put("/appointments/:id", isAuthenticatedAndStaff, async (req, res) => {
+router.put("/appointments/:id", async (req, res) => {
   try {
     const appointmentId = req.params.id;
     const { appointmentDate, appointmentTime, services, packages, status } =
@@ -380,13 +371,9 @@ router.post("/cart/remove", async (req, res) => {
     }
 
     if (type === "service") {
-      cart.services = cart.services.filter(
-        (s) => s.service.toString() !== itemId
-      );
+      cart.services = cart.services.filter((s) => s._id.toString() !== itemId);
     } else if (type === "package") {
-      cart.packages = cart.packages.filter(
-        (p) => p.package.toString() !== itemId
-      );
+      cart.packages = cart.packages.filter((p) => p._id.toString() !== itemId);
     } else {
       return res.status(400).json({ message: "Invalid type" });
     }
@@ -424,7 +411,10 @@ router.get("/users/:userId/appointments", async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const userAppointments = await Appointment.find({ user: userId })
+    const userAppointments = await Appointment.find({
+      user: userId,
+      status: { $ne: "Carted" },
+    })
       .populate("services.service", "serviceName")
       .populate("packages.package", "packageName")
       .populate("packages.services.service", "serviceName"); // populate nested services in packages
@@ -441,5 +431,53 @@ router.get("/users/:userId/appointments", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch appointments" });
   }
 });
+
+// GET /appointments - returns all appointments with populated data
+router.get("/appointments", async (req, res) => {
+  try {
+    const currentUser = req.user;
+
+    // Get all appointments with deep population
+    let appointments = await Appointment.find()
+      .populate("user", "mobile name")
+      .populate("services.service", "serviceName")
+      .populate("packages.package", "packageName")
+      .populate("packages.services.service", "serviceName");
+
+    // If role is staff, only show appointments assigned to them
+    if (currentUser && currentUser.role === "staff") {
+      appointments = appointments.filter((appt) =>
+        appt.assignedTo.some(
+          (staffId) => staffId.toString() === currentUser._id.toString()
+        )
+      );
+    }
+
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error("Error loading appointments:", error);
+    res.status(500).json({ error: "Failed to load appointments" });
+  }
+});
+
+router.post("/appointments/cancel/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    appointment.status = "Cancelled";
+    await appointment.save();
+
+    res.status(200).json({ message: "Appointment cancelled successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error cancelling appointment" });
+  }
+});
+
 // Export the router
 module.exports = router;

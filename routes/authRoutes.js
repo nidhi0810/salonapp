@@ -1,7 +1,61 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
+const InviteToken = require("../models/InviteToken");
+
 const router = express.Router();
+
+// POST /admin/generate-invite
+router.post("/admin/generate-invite", async (req, res) => {
+  const { role = "staff" } = req.body;
+  console.log("Generating token");
+  const token = require("crypto").randomBytes(32).toString("hex");
+
+  await InviteToken.create({ token, role });
+
+  const inviteLink = `https://bayleaf.onrender.com/register/${token}`;
+  res.json({ inviteLink });
+});
+
+// POST /register/:token
+router.post("/register/:token", async (req, res) => {
+  const { token } = req.params;
+  const { name, email, password, mobile, outletId } = req.body;
+
+  try {
+    const invite = await InviteToken.findOne({ token, used: false });
+    if (!invite) {
+      return res.status(400).json({ error: "Invalid or expired token" });
+    }
+
+    // Check if user with same email or mobile already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { mobile }] });
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ error: "User already exists with this email or phone" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+      name,
+      email,
+      mobile,
+      password: hashedPassword,
+      role: invite.role, // likely "staff"
+      outlet: outletId, // link to outlet
+    });
+
+    invite.used = true;
+    await invite.save();
+
+    res.json({ message: "Registration successful", user: newUser });
+  } catch (error) {
+    console.error("Error in register token route:", error);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
 
 // Get Profile
 router.get("/profile", async (req, res) => {
@@ -81,10 +135,21 @@ router.post("/google", async (req, res) => {
       name: user.name, // Assuming the user's name is stored in the "name" field
       role: user.role,
     };
-    res.status(200).json({
-      message: "User authenticated successfully",
-      redirectUrl: "/",
-    });
+    if (user.role === "customer") {
+      res.status(200).json({
+        message: "User authenticated successfully",
+        redirectUrl: "/",
+      });
+    } else if (user.role === "staff") {
+      res.status(200).json({
+        message: "User authenticated successfully",
+        redirectUrl: "/adminviewappointment",
+      });
+    } else {
+      res.status(403).json({
+        message: "Unauthorized role",
+      });
+    }
   } catch (error) {
     console.error("Error authenticating user:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -145,10 +210,21 @@ router.post("/login", async (req, res) => {
     };
     console.log("After setting session:", req.session);
 
-    res.status(200).json({
-      message: "User authenticated successfully",
-      redirectUrl: "/",
-    });
+    if (user.role === "customer") {
+      res.status(200).json({
+        message: "User authenticated successfully",
+        redirectUrl: "/",
+      });
+    } else if (user.role === "staff") {
+      res.status(200).json({
+        message: "User authenticated successfully",
+        redirectUrl: "/adminviewappointment",
+      });
+    } else {
+      res.status(403).json({
+        message: "Unauthorized role",
+      });
+    }
   } catch (err) {
     res.status(500).json({ message: "Error logging in", error: err });
   }

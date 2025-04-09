@@ -128,7 +128,7 @@
 
     <!-- JavaScript -->
     <script>
-      const API_URL = "http://localhost:5000/api";
+      const API_URL = "https://bayleaf.onrender.com/api";
 
       // Fetch Appointments and Render on the Page
       // Fetch Appointments and Render on the Page
@@ -193,90 +193,94 @@
             return;
           }
 
-          // Render filtered appointments
           filteredAppointments.forEach((appointment) => {
             const card = document.createElement("div");
             card.className = "col-md-4 appointment-card";
 
-            // Extract service names from the services array
+            // ✅ Fix: Extract service names from nested structure
             const serviceNames = appointment.services
-              .map((service) => service.serviceName)
+              .map((s) => s.service?.serviceName || "N/A")
               .join(", ");
 
-            // Extract package name from the package object
+            // ✅ Fix: Extract package names from nested structure
             const packageNames = appointment.packages
-              .map((package) => package.packageName)
+              .map((p) => p.package?.packageName || "N/A")
               .join(", ");
 
-            // Add a dropdown for staff assignment if user is admin
+            // ✅ Dropdown for admin role
             const assignToDropdown =
               role === "admin"
                 ? `
-          <div class="d-flex align-items-center mt-2">
-            <label for="assignTo" class="me-2"><strong>Assign To:</strong></label>
-            <select id="assignTo-${
-              appointment._id
-            }" class="form-select me-2" style="width: auto;" multiple>
-              ${staffList
-                .map(
-                  (staff) =>
-                    `<option value="${staff._id}">${staff.name}</option>`
-                )
-                .join("")}
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="assignToStaff('${
-              appointment._id
-            }', '${appointment.status}')">Assign</button>
-          </div>
-        `
+  <div class="d-flex align-items-center mt-2">
+    <label for="assignTo" class="me-2"><strong>Assign To:</strong></label>
+    <select id="assignTo-${
+      appointment._id
+    }" class="form-select me-2" style="width: auto;" multiple>
+      ${staffList
+        .map((staff) => `<option value="${staff._id}">${staff.name}</option>`)
+        .join("")}
+    </select>
+    <button class="btn btn-primary btn-sm" onclick="assignToStaff('${
+      appointment._id
+    }', '${appointment.status}')">Assign</button>
+  </div>
+`
                 : "";
 
+            // ✅ Full card rendering
             card.innerHTML = `
-  <div class="position-relative">
-<button 
-  class="btn btn-warning btn-sm position-absolute top-0 end-0" 
-  onclick="openEditModal('${appointment._id}', '${appointment.user._id}')">
-  Edit
-</button>
+    <div class="position-relative">
+      <button 
+        class="btn btn-warning btn-sm position-absolute top-0 end-0" 
+        onclick="openEditModal('${appointment._id}', '${
+              appointment.user._id
+            }')">
+        Edit
+      </button>
 
-    <h5>${appointment.customerName}</h5>
-    <p><strong>Contact Number:</strong> ${appointment.user?.mobile || "N/A"}</p>
-    <p><strong>Services:</strong> ${serviceNames}</p>
-    <p><strong>Packages:</strong> ${packageNames}</p>
-    <p><strong>Remarks:</strong> ${appointment.remarks || "No remarks"}</p>
-    <p><strong>Date:</strong> ${new Date(
-      appointment.appointmentDate
-    ).toLocaleDateString()}</p>
-    <p><strong>Time:</strong> ${appointment.appointmentTime || "N/A"}</p>
-    <div>
-      <label for="status-${appointment._id}"><strong>Status:</strong></label>
-      <select 
-        id="status-${appointment._id}" 
-        class="form-select form-select-sm" 
-        onchange="updateAppointment('${
-          appointment._id
-        }', { status: this.value })">
-        <option value="Request Sent" ${
-          appointment.status === "Request Sent" ? "selected" : ""
-        }>Request Sent</option>
-        <option value="Confirmed" ${
-          appointment.status === "Confirmed" ? "selected" : ""
-        }>Confirmed</option>
-        <option value="Cancelled" ${
-          appointment.status === "Cancelled" ? "selected" : ""
-        }>Cancelled</option>
-        <option value="Did Not Turn Up" ${
-          appointment.status === "Did Not Turn Up" ? "selected" : ""
-        }>Did Not Turn Up</option>
-        <option value="Partially Completed" ${
-          appointment.status === "Partially Completed" ? "selected" : ""
-        }>Partially Completed</option>
-        <option value="All Completed" ${
-          appointment.status === "All Completed" ? "selected" : ""
-        }>All Completed</option>
-      </select>
+      <h5>${appointment.customerName}</h5>
+      <p><strong>Contact Number:</strong> ${
+        appointment.user?.mobile || "N/A"
+      }</p>
+      <p><strong>Services:</strong> ${serviceNames}</p>
+      <p><strong>Packages:</strong> ${packageNames}</p>
+      <p><strong>Remarks:</strong> ${appointment.remarks || "No remarks"}</p>
+      <p><strong>Date:</strong> ${new Date(
+        appointment.appointmentDate
+      ).toLocaleDateString()}</p>
+      <p><strong>Time:</strong> ${appointment.appointmentTime || "N/A"}</p>
+      <div>
+        <label for="status-${appointment._id}"><strong>Status:</strong></label>
+        <select 
+          id="status-${appointment._id}" 
+          class="form-select form-select-sm" 
+          onchange="updateAppointment('${
+            appointment._id
+          }', { status: this.value })">
+          <option value="Request Sent" ${
+            appointment.status === "Request Sent" ? "selected" : ""
+          }>Request Sent</option>
+          <option value="Confirmed" ${
+            appointment.status === "Confirmed" ? "selected" : ""
+          }>Confirmed</option>
+          <option value="Cancelled" ${
+            appointment.status === "Cancelled" ? "selected" : ""
+          }>Cancelled</option>
+          <option value="Did Not Turn Up" ${
+            appointment.status === "Did Not Turn Up" ? "selected" : ""
+          }>Did Not Turn Up</option>
+          <option value="Partially Completed" ${
+            appointment.status === "Partially Completed" ? "selected" : ""
+          }>Partially Completed</option>
+          <option value="All Completed" ${
+            appointment.status === "All Completed" ? "selected" : ""
+          }>All Completed</option>
+        </select>
+      </div>
+      ${assignToDropdown}
     </div>
   `;
+
             list.appendChild(card);
           });
         } catch (error) {

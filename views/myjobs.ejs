@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Jobs</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary-color: #7c3aed; /* Deep Purple */
+        --secondary-color: #ede9fe; /* Light Purple for table stripe */
+        --header-bg: #5b21b6; /* Darker header purple */
+        --text-light: #f9f9f9;
+        --light-color: #f3f4f6;
+        --dark-color: #1f2937;
+      }
+
+      body {
+        background-color: var(--light-color);
+        color: var(--dark-color);
+      }
+
+      h2 {
+        color: var(--primary-color);
+      }
+
+      .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .badge.bg-success {
+        background-color: var(--primary-color) !important;
+      }
+
+      /* Updated table header and rows */
+      .table thead th {
+        background-color: var(--header-bg);
+        color: var(--text-light);
+        border-color: var(--header-bg);
+      }
+
+      .table-striped tbody tr:nth-of-type(odd) {
+        background-color: var(--secondary-color);
+      }
+
+      .table-bordered th,
+      .table-bordered td {
+        border-color: var(--secondary-color);
+      }
+
+      .table td,
+      .table th {
+        vertical-align: middle;
+      }
+    </style>
+    <style>
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 250px;
+        height: 100vh;
+        background-color: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+        padding: 20px 0;
+        z-index: 1000;
+      }
+
+      .main-content {
+        margin-left: 250px; /* Important: offset by sidebar width */
+        padding: 20px;
+        background-color: #fff;
+        min-height: 100vh;
+        overflow-x: auto;
+      }
+
+      body {
+        margin: 0;
+        background-color: #f1f1f1;
+      }
+    </style>
+  </head>
+  <body class="p-4 bg-light">
+    <!-- Sidebar -->
+    <%- include('adminpanel') %>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="container mt-5">
+        <h2 class="mb-4">My Jobs</h2>
+        <table class="table table-bordered table-striped" id="myJobsTable">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Service/Package</th>
+              <th>Date/Time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div
+      class="modal fade"
+      id="editModal"
+      tabindex="-1"
+      aria-labelledby="editModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel">Edit Job</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="row">
+              <!-- Left Column (Date/Time + Cart) -->
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="editDate" class="form-label">Date</label>
+                  <input
+                    type="date"
+                    class="form-control"
+                    id="editDate"
+                    placeholder="Pick a date"
+                  />
+                </div>
+                <div class="mb-3">
+                  <label for="editTime" class="form-label">Time</label>
+                  <input
+                    type="time"
+                    class="form-control"
+                    id="editTime"
+                    placeholder="Pick a time"
+                  />
+                </div>
+
+                <h5>Cart</h5>
+                <div
+                  id="cartItems"
+                  class="border p-3 rounded bg-light"
+                  style="max-height: 400px; overflow-y: auto"
+                >
+                  <!-- Cart items dynamically injected here -->
+                </div>
+              </div>
+
+              <!-- Right Column (Search Services/Packages) -->
+              <div class="col-md-6">
+                <!-- Search Bar and Category Panel -->
+                <div class="d-flex position-relative mb-3">
+                  <input
+                    type="text"
+                    class="form-control me-2"
+                    id="search"
+                    placeholder="Search services and packages"
+                  />
+                  <button
+                    class="btn btn-primary"
+                    style="
+                      background-color: #5e2b97;
+                      color: white;
+                      border: none;
+                    "
+                    id="searchButton"
+                  >
+                    Search
+                  </button>
+                </div>
+
+                <!-- Result List -->
+                <div id="searchResults" class="list-group"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      const API_URL = "https://bayleaf.onrender.com";
+      let userId = null;
+      let currentAppointmentId = null;
+      let allServices = [];
+      let allPackages = [];
+
+      document.addEventListener("DOMContentLoaded", () => {
+        getUserIdAndFetchJobs();
+      });
+
+      async function getUserIdAndFetchJobs() {
+        try {
+          const res = await fetch(`${API_URL}/api/userRole`);
+          const data = await res.json();
+
+          if (data.success && data.userId) {
+            userId = data.userId;
+            console.log("✅ Logged-in User ID:", userId);
+            fetchMyJobs(userId);
+          } else {
+            console.warn("⚠️ Couldn't get userId");
+          }
+        } catch (err) {
+          console.error("❌ Failed to fetch userRole:", err);
+        }
+      }
+
+      async function fetchMyJobs(userId) {
+        try {
+          const res = await fetch(`${API_URL}/api/staff/my-jobs/${userId}`);
+          const data = await res.json();
+          const tbody = document.querySelector("#myJobsTable tbody");
+          tbody.innerHTML = "";
+
+          if (!data.jobs.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="5" class="text-center text-muted">No jobs assigned.</td></tr>';
+            return;
+          }
+
+          data.jobs.forEach((job) => {
+            const dateStr = new Date(job.date).toLocaleDateString();
+            const timeStr = job.time;
+
+            const row = `
+              <tr data-id="${job.itemId}" data-appt="${
+              job.appointmentId
+            }" data-type="${job.type}">
+                <td>${job.customer}</td>
+                <td>${job.name} - ${job.remarks || "None"}</td>
+                <td>${dateStr} ${timeStr}</td>
+                <td>
+                  <select class="form-select form-select-sm">
+                    ${["Assigned", "In Progress", "Completed", "Cancelled"]
+                      .map(
+                        (opt) =>
+                          `<option value="${opt}" ${
+                            opt === job.status ? "selected" : ""
+                          }>${opt}</option>`
+                      )
+                      .join("")}
+                  </select>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
+                </td>
+              </tr>
+            `;
+            tbody.insertAdjacentHTML("beforeend", row);
+          });
+        } catch (err) {
+          console.error("Failed to fetch my jobs:", err);
+        }
+      }
+
+      document
+        .querySelector("#myJobsTable")
+        .addEventListener("click", async (e) => {
+          const btn = e.target;
+          if (btn.classList.contains("edit-btn")) {
+            const row = btn.closest("tr");
+            const itemId = row.dataset.id;
+            const type = row.dataset.type;
+            const appointmentId = row.dataset.appt;
+
+            currentAppointmentId = appointmentId;
+
+            // Fetch appointment details including date and time
+            try {
+              const res = await fetch(
+                `${API_URL}/api/staff/cart/${appointmentId}`
+              );
+              const data = await res.json();
+
+              // Set fetched date/time values
+              const date = data.appointmentDate?.split("T")[0] || "";
+              const time = data.appointmentTime || "";
+
+              document.querySelector("#editDate").value = date;
+              document.querySelector("#editTime").value = time;
+
+              await loadCartForAppointment(currentAppointmentId);
+              new bootstrap.Modal(document.getElementById("editModal")).show();
+            } catch (err) {
+              console.error("❌ Failed to load appointment date/time:", err);
+            }
+          }
+        });
+
+      document
+        .querySelector("#myJobsTable")
+        .addEventListener("change", async (e) => {
+          if (e.target.tagName === "SELECT") {
+            const row = e.target.closest("tr");
+            const appointmentId = row.dataset.appt;
+            const itemId = row.dataset.id;
+            const itemType = row.dataset.type;
+            const newStatus = e.target.value;
+
+            try {
+              const res = await fetch(`${API_URL}/api/staff/update-status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  appointmentId,
+                  itemId,
+                  itemType,
+                  newStatus,
+                }),
+              });
+
+              if (!res.ok) {
+                const errText = await res.text();
+                alert("Error: " + errText);
+                console.error("❌ Backend error:", errText);
+              } else {
+                console.log("✔ Status updated");
+                e.target.disabled = true;
+              }
+            } catch (err) {
+              alert("Something went wrong!");
+              console.error(err);
+            }
+          }
+        });
+
+      async function loadCartForAppointment(appointmentId) {
+        try {
+          const response = await fetch(
+            `${API_URL}/api/staff/cart/${appointmentId}`
+          );
+          if (response.ok) {
+            const cart = await response.json();
+            displayCart(cart, appointmentId);
+          } else if (response.status === 404) {
+            displayCart({ services: [], packages: [] }, appointmentId);
+          } else {
+            alert("Failed to load cart");
+          }
+        } catch (error) {
+          console.error("Error loading cart:", error);
+        }
+      }
+
+      function displayCart(cart, appointmentId) {
+        const cartItems = document.getElementById("cartItems");
+        cartItems.innerHTML = "";
+
+        const isEmpty =
+          (!cart.services || cart.services.length === 0) &&
+          (!cart.packages || cart.packages.length === 0);
+
+        if (isEmpty) {
+          cartItems.innerHTML =
+            "<div class='text-muted text-center'>Your cart is empty!</div>";
+          return;
+        }
+
+        if (cart.services?.length) {
+          cartItems.innerHTML += "<h6>Services</h6>";
+          cart.services.forEach((item) => {
+            const service = item?.service;
+            if (service) {
+              const id = service._id;
+              cartItems.innerHTML += `
+              <div class="d-flex justify-content-between mb-2">
+                <div>${service.serviceName || "Unnamed"} - ₹${
+                service.price || 0
+              }</div>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${appointmentId}', '${id}', 'service')">❌</button>
+              </div>`;
+            }
+          });
+        }
+
+        if (cart.packages?.length) {
+          cartItems.innerHTML += "<h6>Packages</h6>";
+          cart.packages.forEach((item) => {
+            const pkg = item?.package;
+            if (pkg) {
+              const id = pkg._id;
+              cartItems.innerHTML += `
+              <div class="d-flex justify-content-between mb-2">
+                <div>${pkg.packageName || "Unnamed"} - ₹${pkg.price || 0}</div>
+                <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${appointmentId}', '${id}', 'package')">❌</button>
+              </div>`;
+            }
+          });
+        }
+      }
+
+      async function removeFromCart(appointmentId, itemId, type) {
+        try {
+          const res = await fetch(`${API_URL}/api/staff/cart/remove`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ appointmentId, itemId, type }),
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            console.log("Item removed:", data);
+            await loadCartForAppointment(appointmentId);
+          } else {
+            alert(data.message || "Failed to remove item.");
+          }
+        } catch (err) {
+          console.error("Remove failed:", err);
+        }
+      }
+
+      async function addToCart(itemId, type) {
+        try {
+          const res = await fetch(`${API_URL}/api/staff/cart/add`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              appointmentId: currentAppointmentId,
+              itemId,
+              type,
+            }),
+          });
+
+          const data = await res.json();
+          if (res.ok) {
+            console.log("Item added:", data);
+            await loadCartForAppointment(currentAppointmentId);
+          } else {
+            alert(data.message || "Failed to add item.");
+          }
+        } catch (err) {
+          console.error("Add to cart failed:", err);
+        }
+      }
+
+      async function searchServicesAndPackages(query) {
+        try {
+          const responseServices = await fetch(
+            `${API_URL}/api/services?search=${query}`
+          );
+          const servicesResult = await responseServices.json();
+
+          const responsePackages = await fetch(
+            `${API_URL}/api/packages?search=${query}`
+          );
+          const packagesResult = await responsePackages.json();
+
+          const services = Array.isArray(servicesResult.data)
+            ? servicesResult.data
+            : [];
+          const packages = Array.isArray(packagesResult.data)
+            ? packagesResult.data
+            : [];
+
+          if (services.length > 0 || packages.length > 0) {
+            displayServicesAndPackages(services, packages);
+          } else {
+            console.error("No services or packages found.");
+          }
+        } catch (error) {
+          console.error("Error fetching services or packages:", error);
+        }
+      }
+
+      document.getElementById("searchButton").addEventListener("click", () => {
+        const query = document.getElementById("search").value;
+        searchServicesAndPackages(query);
+      });
+
+      function displayServicesAndPackages(services, packages) {
+        const resultContainer = document.getElementById("searchResults");
+        resultContainer.innerHTML = ""; // clear previous results
+
+        if (services.length === 0 && packages.length === 0) {
+          resultContainer.innerHTML =
+            "<div class='text-muted'>No results found.</div>";
+          return;
+        }
+
+        // Display Services
+        if (services.length > 0) {
+          const serviceHeader = document.createElement("div");
+          serviceHeader.className = "fw-bold mb-1";
+          serviceHeader.innerText = "Services";
+          resultContainer.appendChild(serviceHeader);
+
+          services.forEach((service) => {
+            const item = document.createElement("div");
+            item.className =
+              "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `
+        <span>${service.serviceName} - ₹${service.price}</span>
+        <button class="btn btn-sm btn-outline-success" onclick="addToCart('${service._id}', 'service')">➕</button>
+      `;
+            resultContainer.appendChild(item);
+          });
+        }
+
+        // Display Packages
+        if (packages.length > 0) {
+          const packageHeader = document.createElement("div");
+          packageHeader.className = "fw-bold mt-3 mb-1";
+          packageHeader.innerText = "Packages";
+          resultContainer.appendChild(packageHeader);
+
+          packages.forEach((pkg) => {
+            const item = document.createElement("div");
+            item.className =
+              "list-group-item d-flex justify-content-between align-items-center";
+            item.innerHTML = `
+        <span>${pkg.packageName} - ₹${pkg.price}</span>
+        <button class="btn btn-sm btn-outline-success" onclick="addToCart('${pkg._id}', 'package')">➕</button>
+      `;
+            resultContainer.appendChild(item);
+          });
+        }
+      }
+      document
+        .getElementById("editDate")
+        .addEventListener("change", updateAppointmentDateTime);
+      document
+        .getElementById("editTime")
+        .addEventListener("change", updateAppointmentDateTime);
+
+      let originalDate = null;
+      let originalTime = null;
+
+      function populateEditModal(date, time) {
+        originalDate = date;
+        originalTime = time;
+      }
+
+      async function updateAppointmentDateTime() {
+        const date = document.getElementById("editDate").value;
+        const time = document.getElementById("editTime").value;
+
+        if (!currentAppointmentId) return;
+
+        // Check if values are unchanged
+        if (date === originalDate && time === originalTime) {
+          console.log("No changes in date/time.");
+          return;
+        }
+
+        try {
+          const res = await fetch(
+            `${API_URL}/api/staff/appointment/update-time`,
+            {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                appointmentId: currentAppointmentId,
+                date,
+                time,
+              }),
+            }
+          );
+
+          const data = await res.json();
+          if (!res.ok) {
+            console.warn("Failed to update date/time:", data.message);
+          } else {
+            console.log("Appointment date/time updated:", data);
+            // Update original values after successful change
+            originalDate = date;
+            originalTime = time;
+          }
+        } catch (err) {
+          console.error("Update error:", err);
+        }
+      }
+
+      const myJobsModal = document.getElementById("editModal"); // Replace with your actual modal ID
+      myJobsModal.addEventListener("hidden.bs.modal", function () {
+        fetchMyJobs(userId);
+      });
+    </script>
+  </body>
+</html>
