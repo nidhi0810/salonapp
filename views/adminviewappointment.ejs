@@ -163,7 +163,9 @@
               const timeStr = appointmentTime;
 
               // Render direct services
-              services.forEach((s, j) => {
+              services
+                .filter((s) => s.status === "Not Assigned")
+                .forEach((s, j) => {
                 const name = s.service?.serviceName || "[Service]";
                 const isAssigned = [
                   "Assigned",
@@ -191,7 +193,9 @@
               });
 
               // Render packages (just name)
-              packages.forEach((pkg, k) => {
+              packages
+                .filter((pkg) => pkg.status === "Not Assigned")
+                .forEach((pkg, k) => {
                 const pkgName = pkg.package?.packageName || "[Package]";
                 const isAssigned = [
                   "Assigned",
