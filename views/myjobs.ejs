@@ -251,7 +251,7 @@
                 <td>${job.name} - ${job.remarks || "None"}</td>
                 <td>${dateStr} ${timeStr}</td>
                 <td>
-                  <select class="form-select form-select-sm" ${job.status === "Cancelled" ? "disabled" : ""}>
+                  <select class="form-select form-select-sm status-dropdown" data-id="${job._id}">
                     ${["Assigned", "In Progress", "Completed", "Cancelled"]
                       .map(
                         (opt) =>
@@ -336,7 +336,10 @@
                 console.error("❌ Backend error:", errText);
               } else {
                 console.log("✔ Status updated");
-                e.target.disabled = true;
+                if (newStatus === "Cancelled") {
+                  e.target.disabled = true;
+                }
+
               }
             } catch (err) {
               alert("Something went wrong!");
