@@ -105,10 +105,11 @@ app.use("/api", appointmentRouter); // Ensure it's set correctly
 
 app.get("/", (req, res) => {
   const user = req.session.user;
-  if (user.role === "customer") {
-    res.render("home", { user });
+
+  if (!user || user.role === "customer") {
+    return res.render("home", { user }); // user will be undefined or a customer
   } else {
-    return res.redirect("/adminviewappointment"); // Redirect to login if not logged in
+    return res.redirect("/adminviewappointment");
   }
 });
 
