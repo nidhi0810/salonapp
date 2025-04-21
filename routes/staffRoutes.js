@@ -5,6 +5,89 @@ const router = express.Router();
 const Appointment = require("../models/Appointment");
 const ServiceMaster = require("../models/ServiceMaster");
 const PackageMaster = require("../models/PackageMaster");
+router.get("/job-rankings", async (req, res) => {
+  const month = req.query.month; // Month in the format YYYY-MM
+  const startOfMonth = new Date(`${month}-01`);
+  const endOfMonth = new Date(startOfMonth);
+  endOfMonth.setMonth(startOfMonth.getMonth() + 1);
+
+  console.log(`Start of Month: ${startOfMonth}`);
+  console.log(`End of Month: ${endOfMonth}`);
+
+  try {
+    const completedJobs = await Appointment.aggregate([
+      {
+        $match: {
+          appointmentDate: { $gte: startOfMonth, $lt: endOfMonth },
+          $or: [
+            { "services.status": "Completed" },
+            { "packages.status": "Completed" },
+          ],
+        },
+      },
+      {
+        $facet: {
+          services: [
+            { $unwind: "$services" },
+            { $match: { "services.status": "Completed" } },
+            {
+              $group: {
+                _id: "$services.assignedTo", // Group by staff assigned to the service
+                completedJobs: { $sum: 1 }, // Count completed services for each staff member
+              },
+            },
+          ],
+          packages: [
+            { $unwind: "$packages" },
+            { $match: { "packages.status": "Completed" } },
+            {
+              $group: {
+                _id: "$packages.assignedTo", // Group by staff assigned to the package
+                completedJobs: { $sum: 1 }, // Count completed packages for each staff member
+              },
+            },
+          ],
+        },
+      },
+      {
+        $project: {
+          completedJobs: { $concatArrays: ["$services", "$packages"] }, // Combine both services and packages
+        },
+      },
+      { $unwind: "$completedJobs" },
+      {
+        $group: {
+          _id: "$completedJobs._id", // Group by staff member (assignedTo)
+          completedJobs: { $sum: "$completedJobs.completedJobs" }, // Sum the completed jobs for both services and packages
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // Assuming the staff user collection is named 'users'
+          localField: "_id",
+          foreignField: "_id",
+          as: "staffDetails",
+        },
+      },
+      { $unwind: "$staffDetails" }, // Unwind to get individual staff data
+      {
+        $project: {
+          staffId: "$_id",
+          completedJobs: 1,
+          staffName: { $concat: ["$staffDetails.name"] }, // Using the 'name' field
+        },
+      },
+      { $sort: { completedJobs: -1 } }, // Sort by completed jobs in descending order
+    ]);
+
+    console.log("Completed Jobs:", completedJobs); // Log the output to debug
+
+    res.json({ success: true, staffRankings: completedJobs });
+  } catch (err) {
+    console.error("Error fetching job rankings:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+});
 
 router.get("/cart", async (req, res) => {
   try {
@@ -202,6 +285,62 @@ router.patch("/assign-service", async (req, res) => {
   } catch (err) {
     console.error("❌ Error in /assign-service:", err);
     res.status(500).send("Server error while assigning service or package");
+  }
+});
+
+router.patch("/unassign-service", async (req, res) => {
+  const { appointmentId, itemId, itemType, staffId } = req.body;
+  const currentUserId = req.session.user?.userId;
+
+  if (!currentUserId) return res.status(401).send("Unauthorized");
+
+  try {
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) return res.status(404).send("Appointment not found");
+
+    let updated = false;
+
+    if (itemType === "package") {
+      // Handle package unassignment
+      for (const pkg of appointment.packages) {
+        if (
+          pkg._id.toString() === itemId &&
+          pkg.assignedTo?.toString() === staffId
+        ) {
+          pkg.status = "Not Assigned";
+          pkg.assignedTo = null;
+          updated = true;
+          break;
+        }
+      }
+    } else if (itemType === "direct") {
+      // Handle direct service unassignment
+      for (const s of appointment.services) {
+        if (
+          s._id.toString() === itemId &&
+          s.assignedTo?.toString() === staffId
+        ) {
+          s.status = "Not Assigned";
+          s.assignedTo = null;
+          updated = true;
+          break;
+        }
+      }
+    } else {
+      return res.status(400).send("Invalid item type");
+    }
+
+    if (!updated) {
+      return res
+        .status(404)
+        .send("Service/Package not found or not assigned to this user");
+    }
+
+    await appointment.save();
+    res.json({ message: "Service or Package unassigned successfully" });
+  } catch (err) {
+    console.error("❌ Error in /unassign-service:", err);
+    res.status(500).send("Server error while unassigning service or package");
   }
 });
 

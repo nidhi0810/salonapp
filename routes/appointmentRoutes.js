@@ -6,6 +6,8 @@ const Package = require("../models/PackageMaster"); // Your Package model
 const Appointment = require("../models/Appointment");
 const User = require("../models/user"); // Assuming you have a User model to fetch user details
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 // Create a transporter object using the default SMTP transport
 const transporter = nodemailer.createTransport({
@@ -479,5 +481,53 @@ router.post("/appointments/cancel/:id", async (req, res) => {
   }
 });
 
+// In-memory token store (use Redis or DB in prod)
+const resetTokens = new Map();
+
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found." });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiry = Date.now() + 15 * 60 * 1000; // 15 mins
+
+  resetTokens.set(token, { email, expiry });
+
+  const resetLink = `https://bayleaf.onrender.com/reset-password?token=${token}`;
+
+  sendEmail(
+    email,
+    "Password Reset",
+    `Click the following link to reset your password: ${resetLink}`
+  );
+
+  res.json({ message: "Reset link sent to your email." });
+});
+
+router.post("/reset-password", async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  const data = resetTokens.get(token);
+  if (!data || data.expiry < Date.now()) {
+    return res.status(400).json({ message: "Invalid or expired token." });
+  }
+
+  const user = await User.findOne({ email: data.email });
+  if (!user) {
+    return res.status(404).json({ message: "User not found." });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  await user.save();
+
+  resetTokens.delete(token);
+
+  res.json({ message: "Password has been reset successfully." });
+});
 // Export the router
 module.exports = router;

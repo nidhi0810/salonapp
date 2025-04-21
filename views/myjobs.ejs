@@ -89,7 +89,7 @@
       }
     </style>
   </head>
-  <body class="p-4 bg-light">
+  <body class="bg-light">
     <!-- Sidebar -->
     <%- include('adminpanel') %>
 
@@ -242,6 +242,7 @@
           data.jobs.forEach((job) => {
             const dateStr = new Date(job.date).toLocaleDateString();
             const timeStr = job.time;
+            const isCancelled = job.status === "Cancelled";
 
             const row = `
               <tr data-id="${job.itemId}" data-appt="${
@@ -251,7 +252,9 @@
                 <td>${job.name} - ${job.remarks || "None"}</td>
                 <td>${dateStr} ${timeStr}</td>
                 <td>
-                  <select class="form-select form-select-sm status-dropdown" data-id="${job._id}">
+                  <select class="form-select form-select-sm status-dropdown" 
+                          data-id="${job._id}" 
+                          ${isCancelled ? "disabled" : ""}>
                     ${["Assigned", "In Progress", "Completed", "Cancelled"]
                       .map(
                         (opt) =>
@@ -263,7 +266,9 @@
                   </select>
                 </td>
                 <td>
-                  <button class="btn btn-sm btn-outline-secondary edit-btn">Edit</button>
+                  <button class="btn btn-sm btn-outline-secondary edit-btn" ${
+                    isCancelled ? "disabled" : ""
+                  }>Edit</button>
                 </td>
               </tr>
             `;
@@ -286,14 +291,12 @@
 
             currentAppointmentId = appointmentId;
 
-            // Fetch appointment details including date and time
             try {
               const res = await fetch(
                 `${API_URL}/api/staff/cart/${appointmentId}`
               );
               const data = await res.json();
 
-              // Set fetched date/time values
               const date = data.appointmentDate?.split("T")[0] || "";
               const time = data.appointmentTime || "";
 
@@ -311,7 +314,7 @@
       document
         .querySelector("#myJobsTable")
         .addEventListener("change", async (e) => {
-          if (e.target.tagName === "SELECT") {
+          if (e.target.classList.contains("status-dropdown")) {
             const row = e.target.closest("tr");
             const appointmentId = row.dataset.appt;
             const itemId = row.dataset.id;
@@ -336,10 +339,8 @@
                 console.error("❌ Backend error:", errText);
               } else {
                 console.log("✔ Status updated");
-                if (newStatus === "Cancelled") {
-                  e.target.disabled = true;
-                }
-
+                // Refresh the table to show updated status and disabled state
+                fetchMyJobs(userId);
               }
             } catch (err) {
               alert("Something went wrong!");

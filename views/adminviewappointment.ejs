@@ -126,10 +126,35 @@
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const API_URL = "https://bayleaf.onrender.com";
-        console.log("Page loaded, fetching appointments...");
-        fetchAppointments();
+        let CURRENT_USER_ID = null;
+
+        console.log("Page loaded, fetching user info...");
+
+        // First fetch the current user's ID, then fetch appointments
+        fetchCurrentUser().then(fetchAppointments);
+
+        async function fetchCurrentUser() {
+          try {
+            const res = await fetch(`${API_URL}/api/userRole`);
+            const data = await res.json();
+
+            if (data.success && data.userId) {
+              CURRENT_USER_ID = data.userId;
+              console.log("Current user ID:", CURRENT_USER_ID);
+            } else {
+              console.error("Failed to get current user ID");
+            }
+          } catch (err) {
+            console.error("Error fetching current user:", err);
+          }
+        }
 
         async function fetchAppointments() {
+          if (!CURRENT_USER_ID) {
+            console.log("Waiting for user ID before fetching appointments...");
+            return;
+          }
+
           try {
             const res = await fetch(`${API_URL}/api/outlets/appointments`);
             const data = await res.json();
@@ -148,9 +173,15 @@
             }
 
             appointments.forEach((appt, i) => {
+              // Add null checks for appointment
+              if (!appt) {
+                console.error(`Skipping null appointment at index ${i}`);
+                return;
+              }
+
               const {
                 _id: appointmentId,
-                customerName,
+                customerName = "Unknown Customer",
                 appointmentDate,
                 appointmentTime,
                 remarks,
@@ -158,14 +189,22 @@
                 packages = [],
               } = appt;
 
-              console.log(`Appointment ${i + 1}: ${customerName}`);
+              // Validate required fields
+              if (!appointmentId || !appointmentDate || !appointmentTime) {
+                console.error(`Invalid appointment data at index ${i}`, appt);
+                return;
+              }
+
               const dateStr = new Date(appointmentDate).toLocaleDateString();
               const timeStr = appointmentTime;
 
-              // Render direct services
-              services
-                .filter((s) => s.status === "Not Assigned")
-                .forEach((s, j) => {
+              // Render direct services with null checks
+              services.forEach((s, j) => {
+                if (!s) {
+                  console.error(`Skipping null service at index ${j}`);
+                  return;
+                }
+
                 const name = s.service?.serviceName || "[Service]";
                 const isAssigned = [
                   "Assigned",
@@ -173,29 +212,37 @@
                   "Completed",
                   "Cancelled",
                 ].includes(s.status);
-                console.log(`→ Direct Service ${j + 1}: ${name}`);
+
+                // Safe check for assignedTo
+                const isAssignedToCurrentUser =
+                  s.assignedTo && s.assignedTo._id === CURRENT_USER_ID;
 
                 const row = `
-                <tr>
-                  <td>${customerName}</td>
-                  <td>${name} - ${remarks || "None"}</td>
-                  <td>${dateStr} ${timeStr}</td>
-                  <td>
-                    ${
-                      isAssigned
-                        ? '<span class="badge bg-success">Assigned</span>'
-                        : `<button class="btn btn-sm btn-outline-primary" data-appt="${appointmentId}" data-id="${s._id}" data-type="direct">Take Job</button>`
-                    }
-                  </td>
-                </tr>
-              `;
+          <tr>
+            <td>${customerName}</td>
+            <td>${name} - ${remarks || "None"}</td>
+            <td>${dateStr} ${timeStr}</td>
+            <td>
+              ${
+                isAssigned
+                  ? isAssignedToCurrentUser
+                    ? `<button class="btn btn-sm btn-outline-danger leave-job-btn" data-appt="${appointmentId}" data-id="${s._id}" data-type="direct">Leave Job</button>`
+                    : '<span class="badge bg-success">Assigned</span>'
+                  : `<button class="btn btn-sm btn-outline-primary take-job-btn" data-appt="${appointmentId}" data-id="${s._id}" data-type="direct">Take Job</button>`
+              }
+            </td>
+          </tr>
+        `;
                 tbody.insertAdjacentHTML("beforeend", row);
               });
 
-              // Render packages (just name)
-              packages
-                .filter((pkg) => pkg.status === "Not Assigned")
-                .forEach((pkg, k) => {
+              // Render packages with null checks
+              packages.forEach((pkg, k) => {
+                if (!pkg) {
+                  console.error(`Skipping null package at index ${k}`);
+                  return;
+                }
+
                 const pkgName = pkg.package?.packageName || "[Package]";
                 const isAssigned = [
                   "Assigned",
@@ -203,23 +250,27 @@
                   "Completed",
                   "Cancelled",
                 ].includes(pkg.status);
-                console.log(`→ Package ${k + 1}: ${pkgName}`);
+
+                // Safe check for assignedTo
+                const isAssignedToCurrentUser =
+                  pkg.assignedTo && pkg.assignedTo._id === CURRENT_USER_ID;
 
                 const row = `
-                <tr>
-                  <td>${customerName}</td>
-                  <td>${pkgName} - ${remarks || "None"}</td>
-
-                  <td>${dateStr} ${timeStr}</td>
-                  <td>
-                    ${
-                      isAssigned
-                        ? '<span class="badge bg-success">Assigned</span>'
-                        : `<button class="btn btn-sm btn-outline-primary" data-appt="${appointmentId}" data-id="${pkg._id}" data-type="package">Take Job</button>`
-                    }
-                  </td>
-                </tr>
-              `;
+          <tr>
+            <td>${customerName}</td>
+            <td>${pkgName} - ${remarks || "None"}</td>
+            <td>${dateStr} ${timeStr}</td>
+            <td>
+              ${
+                isAssigned
+                  ? isAssignedToCurrentUser
+                    ? `<button class="btn btn-sm btn-outline-danger leave-job-btn" data-appt="${appointmentId}" data-id="${pkg._id}" data-type="package">Leave Job</button>`
+                    : '<span class="badge bg-success">Assigned</span>'
+                  : `<button class="btn btn-sm btn-outline-primary take-job-btn" data-appt="${appointmentId}" data-id="${pkg._id}" data-type="package">Take Job</button>`
+              }
+            </td>
+          </tr>
+        `;
                 tbody.insertAdjacentHTML("beforeend", row);
               });
             });
@@ -235,10 +286,7 @@
         document
           .querySelector("#appointmentsTable")
           .addEventListener("click", async (e) => {
-            if (
-              e.target.tagName === "BUTTON" &&
-              e.target.innerText === "Take Job"
-            ) {
+            if (e.target.classList.contains("take-job-btn")) {
               const btn = e.target;
               const appointmentId = btn.dataset.appt;
               const itemId = btn.dataset.id;
@@ -256,11 +304,52 @@
                     appointmentId,
                     itemId,
                     itemType,
+                    staffId: CURRENT_USER_ID,
                   }),
                 });
 
                 if (res.ok) {
                   console.log("✔ Service/Package assignment successful");
+                  fetchAppointments();
+                } else {
+                  const errText = await res.text();
+                  alert("Error: " + errText);
+                  console.error("❌ Backend error:", errText);
+                }
+              } catch (error) {
+                alert("Something went wrong!");
+                console.error("❌ Exception:", error);
+              }
+            }
+
+            // Handle "Leave Job" button click
+            if (e.target.classList.contains("leave-job-btn")) {
+              const btn = e.target;
+              const appointmentId = btn.dataset.appt;
+              const itemId = btn.dataset.id;
+              const itemType = btn.dataset.type;
+
+              console.log(
+                `→ Leave Job clicked. appt: ${appointmentId}, id: ${itemId}, type: ${itemType}`
+              );
+
+              try {
+                const res = await fetch(
+                  `${API_URL}/api/staff/unassign-service`,
+                  {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      appointmentId,
+                      itemId,
+                      itemType,
+                      staffId: CURRENT_USER_ID,
+                    }),
+                  }
+                );
+
+                if (res.ok) {
+                  console.log("✔ Service/Package unassignment successful");
                   fetchAppointments();
                 } else {
                   const errText = await res.text();

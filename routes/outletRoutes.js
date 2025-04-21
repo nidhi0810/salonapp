@@ -69,8 +69,7 @@ router.get("/appointments", async (req, res) => {
       .populate("services.service")
       .populate("services.assignedTo")
       .populate("packages.package")
-      .populate("packages.services.service")
-      .populate("packages.services.assignedTo")
+      .populate("packages.assignedTo")
       .populate("outlet", "name");
 
     console.log("✅ Appointments fetched:", appointments.length);

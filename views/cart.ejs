@@ -23,6 +23,7 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <style>
       body {
         font-family: "Poppins", sans-serif;
@@ -93,6 +94,17 @@
       }
 
       #bookAppointment {
+        background: linear-gradient(135deg, #663399, #9370db);
+        border: none;
+        border-radius: 10px;
+        padding: 0.7rem;
+        color: white;
+        transition: all 0.3s;
+        width: 100%;
+        margin-top: 1rem;
+      }
+
+      #bookAppointmentMobile {
         background: linear-gradient(135deg, #663399, #9370db);
         border: none;
         border-radius: 10px;
@@ -279,10 +291,38 @@
       .atp .atp-face {
         background-color: #f8f9fa !important;
       }
+
+      /* Initially hide the cart drawer */
+      .cart-drawer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #fff;
+        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+        padding: 10px;
+        max-height: 60vh;
+        overflow-y: auto;
+        display: none; /* Hidden by default */
+        z-index: 1000;
+      }
+
+      /* Optional: Styles for the toggle button */
+      #toggleCartButton {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1100;
+        background-color: #7a50c9; /* A shade between #663399 and #9370db */
+        border: none;
+        color: white;
+        transition: var(--transition);
+      }
     </style>
   </head>
   <body>
     <%- include('../views/navbar') %>
+
     <div class="container mt-5 pt-5 mb-5">
       <!-- Search Bar and Category Panel -->
       <div class="d-flex position-relative">
@@ -295,19 +335,24 @@
         <button class="btn btn-primary" id="searchButton">Search</button>
       </div>
 
+      <!-- Main Content -->
       <div class="row mt-4">
-        <div class="col-3">
+        <!-- Category Panel -->
+        <div class="col-12 col-md-3 mb-4">
           <div class="list-group" id="categoryPanel">
             <!-- Categories will be dynamically added here -->
           </div>
         </div>
-        <div class="col-6">
+
+        <!-- Services and Packages -->
+        <div class="col-12 col-md-6 mb-4">
           <div class="row" id="servicesAndPackages">
             <!-- Services and packages will be dynamically displayed here -->
           </div>
         </div>
-        <!-- Cart Section -->
-        <div class="col-3">
+
+        <!-- Cart Section (Desktop only) -->
+        <div class="d-none d-md-block col-md-3 mb-4">
           <h4>Cart</h4>
           <div
             id="cartItems"
@@ -316,9 +361,13 @@
           >
             <!-- Selected items will appear here dynamically -->
           </div>
-          <button class="btn" id="bookAppointment">Book Appointment</button>
+          <button class="btn btn-primary mt-2" id="bookAppointment">
+            Book Appointment
+          </button>
         </div>
       </div>
+
+      <!-- Appointment Form -->
       <div class="mt-4">
         <textarea
           class="form-control mb-3"
@@ -353,10 +402,33 @@
               id="appointmentTime"
               readonly
               placeholder="Pick a time"
+              style="z-index: 2000"
             />
+          </div>
+          <!-- Mobile Book Appointment Button (Visible only on mobile) -->
+          <div class="d-block d-md-none mt-4 text-center">
+            <button class="btn btn-primary w-100" id="bookAppointmentMobile">
+              Book Appointment
+            </button>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Mobile Cart Drawer Toggle Button -->
+    <!-- Circular Cart Button (Mobile only) -->
+    <button
+      id="toggleCartButton"
+      class="btn btn-primary rounded-circle p-3 d-md-none"
+      style="position: fixed; bottom: 80px; right: 20px; z-index: 1050"
+    >
+      <i class="fas fa-shopping-cart"></i>
+    </button>
+
+    <!-- Cart Section (Mobile and Desktop) -->
+    <div id="cartDrawer" class="cart-drawer">
+      <!-- Your cart content will be dynamically added here -->
+      <div id="cartItemsMobile"></div>
     </div>
 
     <!-- Payment Option Modal -->
@@ -391,6 +463,7 @@
         </div>
       </div>
     </div>
+
     <%- include('../views/footer') %>
 
     <!-- Flatpickr JS -->
@@ -593,8 +666,18 @@
           totalDiv.className = "mt-3 fw-bold";
           totalDiv.innerHTML = `<hr><h5>Total: ₹${globalPrice}</h5>`;
           cartItems.appendChild(totalDiv);
+          // Sync the desktop cart with the mobile cart
+          syncCartToMobile();
         }
 
+        function syncCartToMobile() {
+          const desktopCart = document.getElementById("cartItems");
+          const mobileCart = document.getElementById("cartItemsMobile");
+
+          if (desktopCart && mobileCart) {
+            mobileCart.innerHTML = desktopCart.innerHTML;
+          }
+        }
         // Function to load categories
         async function loadCategories() {
           try {
@@ -742,7 +825,13 @@
 
           services.forEach((service) => {
             const col = document.createElement("div");
-            col.classList.add("col-3");
+            col.classList.add(
+              "col-12",
+              "col-sm-6",
+              "col-md-4",
+              "col-lg-3",
+              "mb-4"
+            );
             col.innerHTML = `
                   <div class="card">
                       <img src="${service.imageUrl}" class="card-img-top" alt="${service.serviceName}">
@@ -758,7 +847,13 @@
 
           packages.forEach((pkg) => {
             const col = document.createElement("div");
-            col.classList.add("col-3");
+            col.classList.add(
+              "col-12",
+              "col-sm-6",
+              "col-md-4",
+              "col-lg-3",
+              "mb-4"
+            );
             col.innerHTML = `
                   <div class="card">
                       <img src="${pkg.imageUrl}" class="card-img-top" alt="${pkg.packageName}">
@@ -947,6 +1042,26 @@
         // Call fetchUserId initially to set up everything
         await fetchUserId();
       });
+
+      document
+        .getElementById("toggleCartButton")
+        .addEventListener("click", toggleCartVisibility);
+
+      function toggleCartVisibility() {
+        const cartDrawer = document.getElementById("cartDrawer");
+        console.log("buttontoggled");
+        // Toggle the cart drawer visibility
+        if (cartDrawer.style.display === "block") {
+          cartDrawer.style.display = "none"; // Hide the cart drawer
+        } else {
+          cartDrawer.style.display = "block"; // Show the cart drawer
+        }
+      }
+      document
+        .getElementById("bookAppointmentMobile")
+        ?.addEventListener("click", () => {
+          document.getElementById("bookAppointment")?.click();
+        });
     </script>
   </body>
 </html>

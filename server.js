@@ -136,6 +136,9 @@ app.get("/register/:token", async (req, res) => {
 app.get("/staffbookappointment", checkRole(["staff", "admin"]), (req, res) => {
   res.render("staffbookappointment"); // Renders the main view
 });
+app.get("/staffdashboard", checkRole(["staff", "admin"]), (req, res) => {
+  res.render("staffdashboard", { userId: req.params.userId }); // Renders the main view
+});
 app.get("/myjobs", checkRole(["staff", "admin"]), (req, res) => {
   res.render("myjobs"); // Renders the main view
 });
@@ -143,6 +146,12 @@ app.get("/myjobs", checkRole(["staff", "admin"]), (req, res) => {
 // Serve login page at /login route
 app.get("/login", (req, res) => {
   res.render("login");
+});
+app.get("/forgot-password", (req, res) => {
+  res.render("forgot-password");
+});
+app.get("/reset-password", (req, res) => {
+  res.render("reset-password");
 });
 app.get("/signup", (req, res) => {
   res.render("signup");
