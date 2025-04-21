@@ -109,7 +109,7 @@ app.get("/", (req, res) => {
   if (!user || user.role === "customer") {
     return res.render("home", { user }); // user will be undefined or a customer
   } else {
-    return res.redirect("/adminviewappointment");
+    return res.redirect("/staffdashboard");
   }
 });
 
