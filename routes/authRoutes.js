@@ -143,7 +143,7 @@ router.post("/google", async (req, res) => {
     } else if (user.role === "staff") {
       res.status(200).json({
         message: "User authenticated successfully",
-        redirectUrl: "/adminviewappointment",
+        redirectUrl: "/staffdashboard",
       });
     } else {
       res.status(403).json({
