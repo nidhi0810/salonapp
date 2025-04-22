@@ -476,7 +476,7 @@
 
             if (response.ok) {
               const result = await response.json();
-              alert("Item added to cart!");
+              //alert("Item added to cart!");
               console.log("Cart:", result.cart);
               loadCart(); // Refresh cart
             } else {
@@ -885,7 +885,7 @@
             );
 
             if (response.ok) {
-              //alert("Appointment booked successfully!");
+              alert("Appointment booked successfully!");
             } else {
               const err = await response.json();
               console.error(err);
