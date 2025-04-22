@@ -254,45 +254,56 @@
         }
       };
 
-      // Signup form
       document
-        .getElementById("signupForm")
-        .addEventListener("submit", async function (e) {
-          e.preventDefault();
+  .getElementById("signupForm")
+  .addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-          const name = document.getElementById("fullName").value;
-          const mobile = document.getElementById("phoneNumber").value;
-          const email = document.getElementById("email").value;
-          const password = document.getElementById("password").value;
-          const confirmPassword =
-            document.getElementById("confirmPassword").value;
-          const outletId = document.getElementById("outlet").value;
-          const token = "<%= token %>"; // This will be available in the URL as /register/:token
-          if (password !== confirmPassword) {
-            alert("Passwords do not match");
-            return;
-          }
+    const name = document.getElementById("fullName").value;
+    const mobile = document.getElementById("phoneNumber").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const outletId = document.getElementById("outlet").value;
+    const token = "<%= token %>"; // From server-side templating
 
-          if (!outletId) {
-            alert("Please select an outlet");
-            return;
-          }
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
 
-          const userData = { name, mobile, email, password, outletId };
-          try {
-            const response = await fetch(`${API_URL}/auth/register/${token}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(userData),
-            });
+    if (!outletId) {
+      alert("Please select an outlet");
+      return;
+    }
 
-            const data = await response.json();
-            //alert(data.message || "Signed up successfully!");
-          } catch (error) {
-            alert("Error connecting to the backend");
-            console.error(error);
-          }
-        });
+    const userData = { name, mobile, email, password, outletId };
+
+    try {
+      const response = await fetch(`${API_URL}/auth/register/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 409) {
+        alert(data.error || "User already exists with this email or phone.");
+      } else if (response.status === 400) {
+        alert(data.error || "Invalid or expired invite token.");
+      } else if (!response.ok) {
+        alert(data.error || "Something went wrong during registration.");
+      } else {
+        alert(data.message || "Signed up successfully!");
+        // Optionally redirect or reset form
+        window.location.href = "/login"; // Or wherever you want to take the user
+      }
+    } catch (error) {
+      alert("Error connecting to the backend");
+      console.error(error);
+    }
+  });
 
       const togglePassword = (inputId, iconId) => {
         const input = document.getElementById(inputId);
