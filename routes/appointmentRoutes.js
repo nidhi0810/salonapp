@@ -83,7 +83,6 @@ Your appointment request has been successfully received.
 
 📅 Date: ${appointmentDate}
 ⏰ Time: ${appointmentTime}
-🏢 Outlet: ${outlet}
 💬 Remarks: ${remarks}
 💰 Price: ₹${price}
 
